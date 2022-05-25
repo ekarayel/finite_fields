@@ -546,4 +546,44 @@ proof -
     unfolding char_def by simp
 qed
 
+lemma (in ring_hom_ring) char_consistent:
+  assumes "inj_on h (carrier R)"
+  shows "char R = char S"
+proof -
+  have a:"h (int_embed R (int n)) = int_embed S (int n)" for n
+    apply (induction n)
+     apply (simp add:R.int_embed_zero S.int_embed_zero)
+    using R.int_embed_range[OF R.carrier_is_subring]
+    using S.int_embed_range[OF S.carrier_is_subring]
+    by (simp add:R.int_embed_add S.int_embed_add R.int_embed_one S.int_embed_one)
+  have b:"h (int_embed R (-(int n))) = int_embed S (-(int n))" for n
+    using R.int_embed_range[OF R.carrier_is_subring]
+    using S.int_embed_range[OF S.carrier_is_subring] a
+    by (simp add:R.int_embed_inv S.int_embed_inv)
+
+  have c:"h (int_embed R n) = int_embed S n" for n
+  proof (cases "n \<ge> 0")
+    case True
+    then obtain m where "n = int m" using nonneg_int_cases by auto
+    then show ?thesis 
+      by (simp add:a)
+  next
+    case False
+    hence "n \<le> 0" by simp
+    then obtain m where "n = -int m"  using nonpos_int_cases by auto
+    then show ?thesis by (simp add:b)
+  qed
+
+  have "char S = card (h ` int_embed R ` UNIV)"
+    unfolding char_def image_image c by simp
+  also have "... = card (int_embed R ` UNIV)"
+    using R.int_embed_range[OF R.carrier_is_subring]
+    apply (intro card_image inj_on_subset[OF assms(1)]) 
+    by auto 
+  also have "... = char R" unfolding char_def by simp
+  finally show ?thesis
+    by simp
+qed
+
+
 end

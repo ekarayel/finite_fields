@@ -1,6 +1,5 @@
 theory Lemma_2_3
 imports 
-  "Extended_Degree"
   "HOL-Algebra.Multiplicative_Group"
   "Monic_Polynomial_Factorization"
 
@@ -82,12 +81,6 @@ next
   thus "a divides (b \<oplus> c)"
     using assms by (intro div_sum) auto
 qed
-
-lemma (in domain) div_mult_r':
-  assumes "a \<in> carrier R" "b \<in> carrier R" "c \<in> carrier R"
-  shows "a \<otimes> c divides b \<otimes> c \<longleftrightarrow> a divides b"
-  using mult_of.divides_mult_r
-  sorry
 
 lemma (in field) x_pow_n_eq_x:
   assumes "finite (carrier R)"
@@ -305,14 +298,12 @@ qed
 definition gauss_poly where 
   "gauss_poly K n = X\<^bsub>K\<^esub> [^]\<^bsub>poly_ring K\<^esub> (n::nat) \<ominus>\<^bsub>poly_ring K\<^esub> X\<^bsub>K\<^esub>"
 
-context 
-  fixes R
-  assumes field_R:"field R"
+context field
 begin
 
-private abbreviation P where "P \<equiv> poly_ring R"
+interpretation polynomial_notation "R"
+  by unfold_locales simp
 
-interpretation field "R" using field_R by simp
 interpretation p:principal_domain "poly_ring R"
   by (simp add: carrier_is_subfield univ_poly_is_principal)
 
@@ -366,22 +357,26 @@ proof -
     (is "_ = ?x")
     by simp
 
-  have xn_m_1_deg_ext: "ext_degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = n" if n_gt_0: "n > 0" for n :: nat
+  have xn_m_1_deg': "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = n" if n_gt_0: "n > 0" for n :: nat
   proof -
-    have "ext_degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = ext_degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<oplus>\<^bsub>P\<^esub> \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    have "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<oplus>\<^bsub>P\<^esub> \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
       by (simp add:a_minus_def)
-    also have "... = max (ext_degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n)) (ext_degree (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>))"
-      using var_pow_closed[OF carrier_is_subring] pow_deg poly_neg_degree_ext one_deg n_gt_0
-      by (subst poly_add_degree_ext, auto)
+    also have "... = max (degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n)) (degree (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>))"
+      using 
+        var_pow_closed[OF carrier_is_subring] var_pow_carr[OF carrier_is_subring] 
+        var_pow_degree[OF carrier_is_subring] univ_poly_a_inv_degree[OF carrier_is_subring] 
+        degree_one n_gt_0
+      by (subst degree_add_distinct[OF carrier_is_subring], auto)
     also have "... = n"
-      by (simp add:pow_deg poly_neg_degree_ext one_deg)
+      using var_pow_degree[OF carrier_is_subring] degree_one univ_poly_a_inv_degree[OF carrier_is_subring]
+      by simp
     finally show ?thesis by simp
   qed
 
   have xn_m_1_deg: "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = n" for n :: nat
   proof (cases "n > 0")
     case True
-    then show ?thesis using degree_eq_ext_degree  xn_m_1_deg_ext by auto
+    then show ?thesis using xn_m_1_deg' by auto
   next
     case False
     hence "n = 0" by simp
@@ -442,45 +437,76 @@ proof -
   finally show ?thesis by simp
 qed
 
-lemma var_pow_eq_one_iff: "X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> k = \<one>\<^bsub>P\<^esub> \<longleftrightarrow> k = 0"
-  sorry
-
 lemma var_neq_zero: "X\<^bsub>R\<^esub> \<noteq> \<zero>\<^bsub>P\<^esub>"
   by (simp add:var_def univ_poly_zero)
 
-lemma gauss_poly_monic: "n > 1 \<Longrightarrow> monic_poly R (gauss_poly R n)" sorry 
-lemma gauss_poly_carr: "gauss_poly R n \<in> carrier P" sorry
-lemma gauss_poly_not_zero: "n > 0 \<Longrightarrow> gauss_poly R n \<noteq> \<zero>\<^bsub>P\<^esub>" sorry
-lemma gauss_poly_degree: "n > 1 \<Longrightarrow> degree (gauss_poly R n) = n" sorry
+lemma var_pow_eq_one_iff: "X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> k = \<one>\<^bsub>P\<^esub> \<longleftrightarrow> k = (0::nat)"
+proof (cases "k=0")
+  case True
+  then show ?thesis   using var_closed(1)[OF carrier_is_subring] by simp
+next
+  case False
+  have "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> k) = k "
+    using var_pow_degree[OF carrier_is_subring] by simp
+  also have "... \<noteq> degree (\<one>\<^bsub>P\<^esub>)" using False degree_one by simp
+  finally have "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> k) \<noteq> degree \<one>\<^bsub>P\<^esub>" by simp
+  then show ?thesis by auto
+qed
+
+lemma gauss_poly_monic: "n > 1 \<Longrightarrow> monic_poly R (gauss_poly R n)"
+  sorry
+lemma gauss_poly_carr: "gauss_poly R n \<in> carrier P"
+  using var_closed(1)[OF carrier_is_subring]
+  unfolding gauss_poly_def by simp
+lemma gauss_poly_not_zero: "n > 1 \<Longrightarrow> gauss_poly R n \<noteq> \<zero>\<^bsub>P\<^esub>" sorry
+lemma gauss_poly_degree: "n > 1 \<Longrightarrow> degree (gauss_poly R n) = n" 
+  unfolding gauss_poly_def a_minus_def
+  apply (subst degree_add_distinct[OF carrier_is_subring]) sorry
+
+lemma geom_nat: 
+  fixes q :: nat
+  fixes x :: "_ :: {comm_ring,monoid_mult}"
+  shows "(x-1) * (\<Sum>i \<in> {..<q}. x^i) = x^q-1"
+  by (induction q, simp, simp add:algebra_simps)
+
+lemma lemma_3:
+  fixes a l m :: nat
+  assumes "l > 0"
+  shows "(a ^ l - 1) dvd (a ^ m - 1) \<longleftrightarrow> l dvd m"
+    (is "?lhs \<longleftrightarrow> ?rhs")
+proof -
+  define q where "q = m div l"
+  define r where "r = m mod l"
+  have m_def: "m = q * l + r" and r_range: "r < l"
+    using assms by (auto simp add:q_def r_def) 
+
+
+
+  show ?thesis
+  sorry
+qed
 
 lemma div_gauss_poly_iff_1:
-  assumes "m > 0"
+  assumes "m > 0" "n > 0" "a > 1"
   shows "gauss_poly R (a^n) pdivides\<^bsub>R\<^esub> gauss_poly R (a^m) \<longleftrightarrow> n dvd m" (is "?lhs=?rhs")
 proof -
-  have a:"a^m > 1" sorry
+  have a:"a^m > 1" using assms one_less_power by blast
   hence a1: "a^m > 0" by linarith
-  have b:"a^n > 1" sorry
+  have b:"a^n > 1" using assms one_less_power by blast
   hence b1:"a^n > 0" by linarith
-  have "?lhs \<longleftrightarrow> gauss_poly R (a^n) divides\<^bsub>mult_of P\<^esub> gauss_poly R (a^m)"
-    unfolding pdivides_def 
-    using p.divides_imp_divides_mult divides_mult_imp_divides gauss_poly_carr
-      gauss_poly_not_zero[OF a1] 
-    by (metis insert_Diff insert_iff p.zero_closed)
-  also have "... \<longleftrightarrow> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (a^n-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) divides\<^bsub>mult_of P\<^esub> 
-    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (a^m-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-    using a b a1 b1 var_closed[OF carrier_is_subring]
-    apply (subst gauss_poly_factor, simp)
-    apply (subst gauss_poly_factor, simp) 
-    apply (subst p.mult_of.divides_mult_r, simp_all add:var_pow_eq_one_iff var_neq_zero) sorry
-  also have "... \<longleftrightarrow> 
-    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (a^n-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides\<^bsub>R\<^esub> 
-    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (a^m-1)        \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-    unfolding pdivides_def 
-    using p.divides_imp_divides_mult divides_mult_imp_divides sorry
+
+  have "?lhs \<longleftrightarrow>
+    (X [^]\<^bsub>P\<^esub> (a^n-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> X pdivides 
+    (X [^]\<^bsub>P\<^esub> (a^m-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> X"
+    using  gauss_poly_factor a1 b1 by simp
+  also have "... \<longleftrightarrow> (X [^]\<^bsub>P\<^esub> (a^n-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides (X [^]\<^bsub>P\<^esub> (a^m-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    using var_closed[OF carrier_is_subring] a b var_neq_zero
+    by (subst pdivides_mult_r, simp_all add:var_pow_eq_one_iff) 
   also have "... \<longleftrightarrow> a^n-1 dvd a^m-1"
-    apply (subst lemma_2) sorry
+    using b by (subst lemma_2, simp, simp) 
   also have "... \<longleftrightarrow> n dvd m"
-    sorry
+    using assms
+    by (subst lemma_3, simp_all)
   finally show ?thesis by simp
 qed
 
