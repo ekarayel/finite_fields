@@ -1,6 +1,7 @@
 theory Lemma_2_3
 imports 
   "HOL-Algebra.Multiplicative_Group"
+  "Formal_Differentiation"
   "Monic_Polynomial_Factorization"
 
 begin
@@ -453,15 +454,48 @@ next
   then show ?thesis by auto
 qed
 
-lemma gauss_poly_monic: "n > 1 \<Longrightarrow> monic_poly R (gauss_poly R n)"
-  sorry
 lemma gauss_poly_carr: "gauss_poly R n \<in> carrier P"
   using var_closed(1)[OF carrier_is_subring]
   unfolding gauss_poly_def by simp
-lemma gauss_poly_not_zero: "n > 1 \<Longrightarrow> gauss_poly R n \<noteq> \<zero>\<^bsub>P\<^esub>" sorry
-lemma gauss_poly_degree: "n > 1 \<Longrightarrow> degree (gauss_poly R n) = n" 
-  unfolding gauss_poly_def a_minus_def
-  apply (subst degree_add_distinct[OF carrier_is_subring]) sorry
+
+lemma gauss_poly_degree:
+  assumes "n > 1"
+  shows "degree (gauss_poly R n) = n" 
+proof -
+  have "degree (gauss_poly R n) = max n 1"
+    unfolding gauss_poly_def a_minus_def
+    using var_pow_carr[OF carrier_is_subring] var_carr[OF carrier_is_subring] degree_var
+    using var_pow_degree[OF carrier_is_subring] univ_poly_a_inv_degree[OF carrier_is_subring]
+    using assms by (subst degree_add_distinct[OF carrier_is_subring], auto)
+  also have "... = n" using assms by simp
+  finally show ?thesis by simp
+qed
+
+lemma gauss_poly_not_zero: 
+  assumes "n > 1"
+  shows "gauss_poly R n \<noteq> \<zero>\<^bsub>P\<^esub>"
+proof -
+  have "degree (gauss_poly R n) \<noteq> degree ( \<zero>\<^bsub>P\<^esub>)"
+    using assms by (subst gauss_poly_degree, simp_all add:univ_poly_zero)
+  thus ?thesis by auto
+qed
+
+lemma gauss_poly_monic:
+  assumes "n > 1" 
+  shows "monic_poly R (gauss_poly R n)"
+proof -
+  have "monic_poly R (X [^]\<^bsub>P\<^esub> n)" 
+    by (intro monic_poly_pow monic_poly_var) 
+  moreover have "\<ominus>\<^bsub>P\<^esub> X \<in> carrier P" 
+    using var_closed[OF carrier_is_subring] by simp
+  moreover have "degree (\<ominus>\<^bsub>P\<^esub> X) < degree (X [^]\<^bsub>P\<^esub> n)" 
+    using assms univ_poly_a_inv_degree[OF carrier_is_subring] var_closed[OF carrier_is_subring]
+    using degree_var
+    unfolding var_pow_degree[OF carrier_is_subring] by (simp)
+  ultimately show ?thesis
+    unfolding gauss_poly_def a_minus_def
+    by (intro monic_poly_add_distinct, auto)
+qed
 
 lemma geom_nat: 
   fixes q :: nat
@@ -470,20 +504,54 @@ lemma geom_nat:
   by (induction q, simp, simp add:algebra_simps)
 
 lemma lemma_3:
-  fixes a l m :: nat
-  assumes "l > 0"
+  fixes a :: int
+  fixes l m :: nat
+  assumes "l > 0" "a > 1"
   shows "(a ^ l - 1) dvd (a ^ m - 1) \<longleftrightarrow> l dvd m"
     (is "?lhs \<longleftrightarrow> ?rhs")
 proof -
   define q where "q = m div l"
   define r where "r = m mod l"
-  have m_def: "m = q * l + r" and r_range: "r < l"
+  have m_def: "m = q * l + r" and r_range: "r < l" "r \<ge> 0"
     using assms by (auto simp add:q_def r_def) 
 
+  have "a ^ (l * q) - 1 = (a ^ l) ^ q - 1"
+    by (simp add: power_mult)
+  also have "... = (a^l - 1) * (\<Sum>i \<in> {..<q}. (a^l)^i)"
+    by (subst geom_nat[symmetric], simp) 
+  finally have "a ^ (l * q) - 1 = (a^l - 1) * (\<Sum>i \<in> {..<q}. (a^l)^i)"
+    by simp
+  hence c:"a ^ l - 1 dvd a^ r * (a ^ (q * l) - 1)" by (simp add:mult.commute)
 
+  have "a ^ m - 1 = a ^ (r + q * l) - 1"
+    unfolding m_def using add.commute by metis
+  also have "... = (a ^ r) * (a ^ (q*l)) -1"
+    by (simp add: power_add)
+  also have "... = ((a ^ r) * (a ^ (q*l) -1)) + (a ^ r) - 1" 
+    by (simp add: right_diff_distrib)
+  also have "... = (a ^ r) * (a ^ (q*l) - 1) + ((a ^ r) - 1)"
+    by simp
+  finally have a:"a ^ m - 1 = (a ^ r) * (a ^ (q*l) - 1) + ((a ^ r) - 1)" (is "_ = ?x")
+    by simp
 
-  show ?thesis
-  sorry
+  have "?lhs \<longleftrightarrow> (a^l -1) dvd ?x"
+    by (subst a, simp)
+  also have "... \<longleftrightarrow> (a^l -1) dvd (a^r -1)"
+    using c dvd_add_right_iff by auto
+  also have "... \<longleftrightarrow> r = 0"
+  proof
+    assume "a ^ l - 1 dvd a ^ r - 1"
+    hence "a ^ l - 1  \<le> a ^ r -1 \<or> r = 0 " 
+      using assms r_range zdvd_not_zless by force
+    moreover have "a ^ r < a^l" using assms r_range by simp
+    ultimately show "r= 0"by simp
+  next
+    assume "r = 0"
+    thus "a ^ l - 1 dvd a ^ r - 1" by simp
+  qed
+  also have "... \<longleftrightarrow> l dvd m"
+    using r_def by auto
+  finally show ?thesis by simp
 qed
 
 lemma div_gauss_poly_iff_1:
@@ -504,6 +572,10 @@ proof -
     by (subst pdivides_mult_r, simp_all add:var_pow_eq_one_iff) 
   also have "... \<longleftrightarrow> a^n-1 dvd a^m-1"
     using b by (subst lemma_2, simp, simp) 
+  also have "... \<longleftrightarrow> int (a^n-1) dvd int (a^m-1)"
+    by (subst of_nat_dvd_iff, simp)
+  also have "... \<longleftrightarrow> int a^n-1 dvd int a^m-1"
+    using a b by (simp add:of_nat_diff)
   also have "... \<longleftrightarrow> n dvd m"
     using assms
     by (subst lemma_3, simp_all)

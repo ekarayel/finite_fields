@@ -145,12 +145,6 @@ qed
 context domain
 begin
 
-lemma poly_of_const_carr:
-  assumes "x \<in> carrier R"
-  shows "poly_of_const x \<in> carrier (poly_ring R)"
-  sorry
-
-
 lemma coeff_range:
   assumes "subring K R"
   assumes "f \<in> carrier (K[X])"
@@ -424,7 +418,7 @@ proof -
   proof (induction m)
     case 0
     then show ?case 
-      using poly_of_const_carr pderiv_carr[OF assms(2)] assms(3) p.int_embed_one by simp
+      using pderiv_carr[OF assms(2)] assms(3) p.int_embed_one by simp
   next
     case (Suc m)
     have "pderiv (f [^]\<^bsub>K [X]\<^esub> (Suc m + 1)) = pderiv (f [^]\<^bsub>K [X]\<^esub> (m+1) \<otimes>\<^bsub>K[X]\<^esub> f) "

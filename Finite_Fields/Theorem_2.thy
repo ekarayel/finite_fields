@@ -479,11 +479,11 @@ proof (cases "degree f dvd n")
       using f_carr
       by (subst pderiv_pow[OF _ carrier_is_subring], simp_all add:numeral_eq_Suc)
     also have "... = f \<otimes>\<^bsub>P\<^esub> (int_embed P 2 \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> f \<otimes>\<^bsub>P\<^esub> h) \<oplus>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> (f \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h)"
-      using f_carr pderiv_carr[OF carrier_is_subring] h_def poly_of_const_carr p.int_embed_closed
+      using f_carr pderiv_carr[OF carrier_is_subring] h_def p.int_embed_closed
       apply (intro arg_cong2[where f="(\<oplus>\<^bsub>P\<^esub>)"]) 
       by (subst p.m_comm, simp_all add:p.m_assoc)
     also have "... = f \<otimes>\<^bsub>P\<^esub> (int_embed P 2 \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> f \<otimes>\<^bsub>P\<^esub> h \<oplus>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h)"
-      using f_carr pderiv_carr[OF carrier_is_subring] h_def poly_of_const_carr p.int_embed_closed
+      using f_carr pderiv_carr[OF carrier_is_subring] h_def p.int_embed_closed
       by (subst p.r_distr, simp_all)
     finally have "\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> = f \<otimes>\<^bsub>P\<^esub> (int_embed P 2 \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> f \<otimes>\<^bsub>P\<^esub> h \<oplus>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h)" 
       (is "_ = f \<otimes>\<^bsub>P\<^esub> ?q")
@@ -491,7 +491,7 @@ proof (cases "degree f dvd n")
 
     hence "f pdivides\<^bsub>R\<^esub> \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
       unfolding factor_def pdivides_def using f_carr pderiv_carr[OF carrier_is_subring] 
-        h_def poly_of_const_carr p.int_embed_closed
+        h_def p.int_embed_closed
       by auto
     moreover have "\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<noteq> \<zero>\<^bsub>P\<^esub>" by simp
     ultimately have  "degree f \<le> degree (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"

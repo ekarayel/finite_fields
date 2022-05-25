@@ -1,6 +1,7 @@
 theory Monic_Polynomial_Factorization
 imports
   Divisibility_Ext Degree
+  Formal_Differentiation
   "HOL-Algebra.Polynomial_Divisibility"
 begin
 
@@ -106,6 +107,60 @@ lemma lead_coeff_mult:
   by (subst poly_mult_lead_coeff[OF carrier_is_subring]) 
    (simp_all add:univ_poly_zero)
 
+lemma monic_poly_carr:
+  assumes "monic_poly R f"
+  shows "f \<in> carrier P"
+  using assms unfolding monic_poly_def by simp
+
+lemma monic_poly_add_distinct: 
+  assumes "monic_poly R f"
+  assumes "g \<in> carrier P" "degree g < degree f"
+  shows "monic_poly R (f \<oplus>\<^bsub>P\<^esub> g)"
+proof (cases "g \<noteq> \<zero>\<^bsub>P\<^esub>")
+  case True
+  define n where "n = degree f"
+  have "f \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}" using assms(1) univ_poly_zero unfolding monic_poly_def by auto
+  hence "degree (f \<oplus>\<^bsub>P\<^esub> g) = max (degree f) (degree g)"
+    using assms(2,3) True
+    by (subst degree_add_distinct[OF carrier_is_subring], simp_all)
+  also have "... = degree f"
+    using assms(3) by simp
+  finally have b: "degree (f \<oplus>\<^bsub>P\<^esub> g) = n"
+    unfolding n_def by simp
+  moreover have "n > 0" using  assms(3) unfolding n_def by simp
+  ultimately have "degree (f \<oplus>\<^bsub>P\<^esub> g) \<noteq> degree ([])" by simp
+  hence a:"f \<oplus>\<^bsub>P\<^esub> g \<noteq> []" by auto
+
+  have "degree [] = 0" by simp
+  also have  "... < degree f"
+    using assms(3) by simp
+  finally have "degree f \<noteq> degree []" by simp
+  hence c: "f \<noteq> []" by auto
+
+  have d: "length g \<le> n" 
+    using  assms(3) unfolding n_def by simp 
+
+  have "lead_coeff (f \<oplus>\<^bsub>P\<^esub> g) = coeff (f \<oplus>\<^bsub>P\<^esub> g) n"
+    using a b by (cases "f \<oplus>\<^bsub>P\<^esub> g", auto)
+  also have "... = coeff f n \<oplus> coeff g n" 
+    using monic_poly_carr assms
+    by (subst coeff_add[OF carrier_is_subring], auto) 
+  also have "... = lead_coeff f \<oplus> coeff g n"
+    using c unfolding n_def by (cases "f", auto)
+  also have "... = \<one> \<oplus> \<zero>"
+    using assms(1) unfolding monic_poly_def subst coeff_length[OF d] by simp
+  also have "... = \<one>"
+    by simp
+  finally have "lead_coeff (f \<oplus>\<^bsub>P\<^esub> g) = \<one>" by simp
+  moreover have "f \<oplus>\<^bsub>P\<^esub> g \<in> carrier P"
+    using monic_poly_carr assms by simp
+  ultimately show  ?thesis
+    using a  unfolding monic_poly_def by auto
+next
+  case False
+  then show ?thesis using assms monic_poly_carr by simp
+qed
+
 
 lemma monic_poly_one: "monic_poly R \<one>\<^bsub>P\<^esub>"
 proof -
@@ -115,10 +170,13 @@ proof -
     by (simp add:univ_poly_one monic_poly_def)
 qed
 
-lemma monic_poly_carr:
-  assumes "monic_poly R f"
-  shows "f \<in> carrier P"
-  using assms unfolding monic_poly_def by simp
+lemma monic_poly_var: "monic_poly R X"
+proof -
+  have "X \<in> carrier P"
+    using var_closed[OF carrier_is_subring] by simp
+  thus ?thesis
+    by (simp add:var_def monic_poly_def)
+qed
 
 lemma monic_poly_carr_2:
   assumes "monic_poly R f"
