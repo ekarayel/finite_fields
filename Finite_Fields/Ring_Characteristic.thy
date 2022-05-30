@@ -18,15 +18,18 @@ proof (rule ring_hom_ringI)
     by (simp add:int_embed_one)
 qed
 
+abbreviation char_subring where
+  "char_subring R \<equiv> int_embed R ` UNIV"
+
 definition char where 
-  "char R = card (int_embed R ` UNIV)"
+  "char R = card (char_subring R)"
 
 lemma (in ring) char_bound:
   assumes "x > 0"
   assumes "int_embed R (int x) = \<zero>"
   shows "char R \<le> x" "char R > 0"
 proof -
-  have "int_embed R ` UNIV \<subseteq> int_embed R ` ({0..<int x})"
+  have "char_subring R \<subseteq> int_embed R ` ({0..<int x})"
   proof (rule image_subsetI)
     fix y :: int
     assume "y \<in> UNIV"
@@ -43,7 +46,7 @@ proof -
     finally show "int_embed R y \<in> int_embed R ` {0..<int x}"
       by simp
   qed
-  hence a:"int_embed R ` UNIV = int_embed R ` {0..<int x}"
+  hence a:"char_subring R = int_embed R ` {0..<int x}"
     by auto
   hence "char R = card (int_embed R ` ({0..<int x}))"
     unfolding char_def a by simp
@@ -61,10 +64,10 @@ qed
 
 lemma (in ring) embed_char_eq_0:
   "int_embed R (int (char R)) = \<zero>"
-proof (cases "finite (int_embed R ` UNIV)")
+proof (cases "finite (char_subring R)")
   case True
   define A where "A = {0..int (char R)}"
-  have "card (int_embed R ` A) \<le> card (int_embed R ` UNIV)"
+  have "card (int_embed R ` A) \<le> card (char_subring R)"
     by (intro card_mono[OF True] image_subsetI, simp)
   also have "... = char R"
     unfolding char_def by simp
@@ -166,7 +169,7 @@ next
 qed
   
 lemma (in ring) char_ring_is_subring:
-  "subring (int_embed R ` UNIV) R"
+  "subring (char_subring R) R"
 proof -
   have "subring (int_embed R ` carrier int_ring) R"
     by (intro ring_hom_ring.img_is_subring[OF int_embed_ring_hom] ring.carrier_is_subring int.is_ring)
@@ -174,11 +177,11 @@ proof -
 qed
 
 lemma (in cring) char_ring_is_subcring:
-  "subcring (int_embed R ` UNIV) R"
+  "subcring (char_subring R) R"
   using subcringI'[OF char_ring_is_subring] by auto
 
 lemma (in domain) char_ring_is_subdomain:
-  "subdomain (int_embed R ` UNIV) R"
+  "subdomain (char_subring R) R"
   using subdomainI'[OF char_ring_is_subring] by auto
 
 lemma (in ring)   (* not useful *)
@@ -187,11 +190,11 @@ proof -
   have "subring (int_embed R ` carrier int_ring) R"
     by (intro ring_hom_ring.img_is_subring[OF int_embed_ring_hom])
      (intro ring.carrier_is_subring int.is_ring)
-  hence "subring (int_embed R ` UNIV) R"
+  hence "subring (char_subring R) R"
     by simp
-  hence a:"subgroup (int_embed R ` UNIV) (add_monoid R)"
+  hence a:"subgroup (char_subring R) (add_monoid R)"
     using subring.axioms by auto
-  have "card (int_embed R ` UNIV) dvd order (add_monoid R)"
+  have "card (char_subring R) dvd order (add_monoid R)"
     using add.lagrange[OF a] 
     by (metis dvd_triv_right)
   thus ?thesis
@@ -378,14 +381,14 @@ qed
 
 lemma (in domain) char_ring_is_subfield:
   assumes "char R > 0"
-  shows "subfield (int_embed R ` UNIV) R"
+  shows "subfield (char_subring R) R"
 proof -
-  interpret d:domain "R \<lparr> carrier := int_embed R ` UNIV \<rparr>"
+  interpret d:domain "R \<lparr> carrier := char_subring R \<rparr>"
     using char_ring_is_subdomain subdomain_is_domain by simp
 
-  have "finite (int_embed R ` UNIV)" 
+  have "finite (char_subring R)" 
     using char_def assms by (metis card_ge_0_finite)
-  hence "Units (R \<lparr> carrier := int_embed R ` UNIV \<rparr>) = int_embed R ` UNIV - {\<zero>}"
+  hence "Units (R \<lparr> carrier := char_subring R \<rparr>) = char_subring R - {\<zero>}"
     using d.finite_domain_units by simp
 
   thus ?thesis
@@ -466,37 +469,25 @@ lemma (in ring) finite_carr_imp_char_ge_0:
   assumes "finite (carrier R)"
   shows "char R > 0"
 proof -
-  have "int_embed R ` UNIV \<subseteq> carrier R"
+  have "char_subring R \<subseteq> carrier R"
     using int_embed_closed by auto
-  hence "finite (int_embed R ` UNIV)" using finite_subset assms by auto
-  hence "card (int_embed R ` UNIV) > 0" using card_range_greater_zero by simp
+  hence "finite (char_subring R)" using finite_subset assms by auto
+  hence "card (char_subring R) > 0" using card_range_greater_zero by simp
   thus "char R > 0" 
     unfolding char_def by simp
 qed
 
-lemma (in field) finite_field_min_order:
-  assumes "finite (carrier R)"
-  shows "order R > 1"
-proof (rule ccontr)
-  assume a:"\<not>(1 < order R)"
-  have "{\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<subseteq> carrier R" by auto
-  hence "card {\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<le> card (carrier R)" using card_mono assms by blast
-  also have "... \<le> 1" using a by (simp add:order_def)
-  finally have "card {\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<le> 1" by blast
-  thus "False" by simp
-qed
 
 text \<open>The size of a finite field must be a prime power.\<close>
 
-theorem (in field) finite_field_order:
-  assumes "finite (carrier R)"
-  shows "\<exists>n. order R = char R ^ n \<and> n > 0"
+theorem (in finite_field) finite_field_order:
+  "\<exists>n. order R = char R ^ n \<and> n > 0"
 proof -
-  have a:"char R > 0" using finite_carr_imp_char_ge_0[OF assms(1)] by simp
-  let ?CR = "int_embed R ` UNIV"
+  have a:"char R > 0" using finite_carr_imp_char_ge_0[OF finite_carrier] by simp
+  let ?CR = "char_subring R"
 
   obtain v where v_def: "set v = carrier R"
-    using assms finite_list by auto
+    using finite_carrier finite_list by auto
   hence b:"set v \<subseteq> carrier R" by auto
 
   have "carrier R = set v" using v_def by simp
@@ -514,15 +505,15 @@ proof -
     using w_def(3) Span_v by simp
 
   hence "order R = card (Span ?CR w)" by (simp add:order_def)
-  also have "... = card (int_embed R ` UNIV)^(length w)"
+  also have "... = card ?CR^length w"
     by (intro card_span char_ring_is_subfield[OF a] w_def(1,2))
   finally have c:"order R = char R^(length w)" by (simp add:char_def)
   have "length w > 0"
-    using finite_field_min_order[OF assms] c by auto
+    using finite_field_min_order c by auto
   thus ?thesis using c by auto
 qed
 
-lemma (in field) freshmans_dream_2:
+lemma (in finite_field) freshmans_dream_2:
   assumes "finite (carrier R)"
   assumes [simp]: "x \<in> carrier R" "y \<in> carrier R"
   shows "(x \<oplus> y) [^] (order R^m) = x [^] (order R^m) \<oplus> y [^] (order R^m)" 
@@ -574,9 +565,9 @@ proof -
     then show ?thesis by (simp add:b)
   qed
 
-  have "char S = card (h ` int_embed R ` UNIV)"
+  have "char S = card (h ` char_subring R)"
     unfolding char_def image_image c by simp
-  also have "... = card (int_embed R ` UNIV)"
+  also have "... = card (char_subring R)"
     using R.int_embed_range[OF R.carrier_is_subring]
     apply (intro card_image inj_on_subset[OF assms(1)]) 
     by auto 

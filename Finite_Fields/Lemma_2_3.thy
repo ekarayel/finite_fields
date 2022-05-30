@@ -3,6 +3,7 @@ imports
   "HOL-Algebra.Multiplicative_Group"
   "Formal_Differentiation"
   "Monic_Polynomial_Factorization"
+  "SimpleFields"
 
 begin
 lemma  (in field) f_comm_group_1:
@@ -83,14 +84,13 @@ next
     using assms by (intro div_sum) auto
 qed
 
-lemma (in field) x_pow_n_eq_x:
-  assumes "finite (carrier R)"
+lemma (in finite_field) x_pow_n_eq_x:
   assumes "x \<in> carrier R"
   shows "x [^] (order R) = x"
 proof (cases "x = \<zero>")
   case True
   have "order R > 0"
-    using assms(1) order_gt_0_iff_finite by simp
+    using assms(1) order_gt_0_iff_finite finite_carrier by simp
   then obtain n where n_def:"order R = Suc n" 
     using lessE by blast
   have "x [^] (order R) = \<zero>" 
@@ -102,7 +102,7 @@ next
     using False assms by simp
 
   have carr_non_empty: "card (carrier R) > 0" 
-    using order_gt_0_iff_finite assms(1) unfolding order_def by simp
+    using order_gt_0_iff_finite finite_carrier unfolding order_def by simp
   have "x [^] (order R) = x [^]\<^bsub>mult_of R\<^esub> (order R)"
     by (simp add:nat_pow_mult_of)
   also have "... = x [^]\<^bsub>mult_of R\<^esub> (order (mult_of R)+1)"
@@ -115,8 +115,7 @@ next
     by simp
 qed
 
-lemma (in field) x_pow_n_eq_x':
-  assumes "finite (carrier R)"
+lemma (in finite_field) x_pow_n_eq_x':
   assumes "x \<in> carrier R"
   shows "x [^] (order R ^ d) = x"
 proof (induction d)
@@ -129,7 +128,7 @@ next
   also have "... = (x [^] (order R ^ d)) [^] order R"
     using assms by (simp add: nat_pow_pow)
   also have "... = (x [^] (order R ^ d))"
-    using x_pow_n_eq_x[OF assms(1)] assms(2) by simp
+    using x_pow_n_eq_x assms by simp
   also have "... = x"
     using Suc by simp
   finally show ?case by simp
@@ -354,7 +353,7 @@ proof -
     unfolding a_minus_def using var_pow_closed[OF carrier_is_subring]
     by (subst p.a_assoc, auto)
   finally have a:"(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> m \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = 
-    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
     (is "_ = ?x")
     by simp
 

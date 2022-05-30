@@ -1,6 +1,30 @@
 theory SimpleFields
-  imports "HOL-Algebra.Ring_Divisibility"
+  imports "HOL-Algebra.Ring_Divisibility" "HOL-Algebra.IntRing" "HOL-Computational_Algebra.Factorial_Ring"
 begin
+
+locale finite_field = field +
+  assumes finite_carrier: "finite (carrier R)"
+begin
+
+lemma finite_field_min_order:
+  "order R > 1"
+proof (rule ccontr)
+  assume a:"\<not>(1 < order R)"
+  have "{\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<subseteq> carrier R" by auto
+  hence "card {\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<le> card (carrier R)"
+    using card_mono finite_carrier by blast
+  also have "... \<le> 1" using a by (simp add:order_def)
+  finally have "card {\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<le> 1" by blast
+  thus "False" by simp
+qed
+
+end
+
+lemma finite_fieldI:
+  assumes "field R"
+  assumes "finite (carrier R)"
+  shows "finite_field R"
+  using assms unfolding finite_field_def finite_field_axioms_def by auto
 
 lemma (in domain) finite_domain_units:
   assumes "finite (carrier R)"
@@ -39,11 +63,22 @@ qed
 lemma finite_domains_are_fields:
   assumes "domain R"
   assumes "finite (carrier R)"
-  shows "field R"
+  shows "finite_field R"
 proof -
   interpret domain R using assms by auto
   have "Units R = carrier R - {\<zero>\<^bsub>R\<^esub>}" using finite_domain_units[OF assms(2)] by simp
-  then show "field R" by (simp add: assms(1) field.intro field_axioms.intro)
+  then have "field R" by (simp add: assms(1) field.intro field_axioms.intro)
+  thus ?thesis  using assms(2) finite_fieldI by auto 
 qed
+
+lemma card_zfact_carr: 
+  assumes "p > 0"
+  shows "card (carrier (ZFact (int p))) = p"
+  sorry
+
+lemma zfact_prime_is_finite_field:
+  assumes "Factorial_Ring.prime p"
+  shows "finite_field (ZFact p)"
+  sorry
 
 end

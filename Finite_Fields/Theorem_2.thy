@@ -163,8 +163,9 @@ proof -
 
 qed
 
-locale finite_field = field +
-  assumes fin_carr: "finite (carrier R)"
+
+
+context finite_field 
 begin
 
 interpretation polynomial_notation "R"
@@ -175,7 +176,7 @@ interpretation p:principal_domain "poly_ring R"
 
 lemma order_min:
   "order R > 1"
-  using finite_field_min_order[OF fin_carr] by simp
+  using finite_field_min_order by simp
 
 lemma div_gauss_poly_iff:
   assumes "n > 0"
@@ -200,7 +201,7 @@ proof -
   have "card (carrier K) > 0"
     using a f_deg order_min unfolding order_def by simp
   hence d: "finite (carrier K)" using card_ge_0_finite by auto
-  interpret f: field "K" using field_K by simp
+  interpret f: finite_field "K" using field_K d by (intro finite_fieldI, simp_all)
   define \<phi> where "\<phi> = rupture_surj (carrier R) f"
   interpret h:ring_hom_ring "P" "K" "\<phi>"
     unfolding K_def \<phi>_def using f_carr rupture_surj_hom[OF carrier_is_subring] by simp
@@ -209,8 +210,7 @@ proof -
     using canonical_embedding_ring_hom[OF carrier_is_subring] by simp
 
   obtain rn where "order R = char K^rn" "rn > 0"
-    unfolding char_K
-    using  finite_field_order[OF fin_carr] by auto
+    unfolding char_K using finite_field_order by auto
   hence ord_rn: "order R ^n = char K^(rn * n)" using assms(1) 
     by (simp add: power_mult)
 
@@ -230,6 +230,7 @@ proof -
   have c:"x [^]\<^bsub>K\<^esub> (order R^degree f) = x" if b:"x \<in> carrier K" for x
     using b d
     apply (subst a[symmetric])
+    using x_pow_n_eq_x
     by (intro f.x_pow_n_eq_x, auto)
 
   have k_cycle: "\<phi> (poly_of_const x) [^]\<^bsub>K\<^esub> (order R^n) = \<phi>(poly_of_const x)" 
@@ -238,7 +239,7 @@ proof -
     have "\<phi> (poly_of_const x) [^]\<^bsub>K\<^esub> (order R^n) = \<phi> (poly_of_const (x [^]\<^bsub>R\<^esub> (order R^n)))"
       using k_cycle_1 by (simp add: h.hom_nat_pow r.hom_nat_pow)
     also have "... = \<phi> (poly_of_const x)"
-      using x_pow_n_eq_x'[OF fin_carr] k_cycle_1 by simp
+      using x_pow_n_eq_x' k_cycle_1 by simp
     finally show ?thesis by simp
   qed
   
@@ -417,6 +418,48 @@ proof -
   qed
 qed
 
+lemma gauss_poly_splitted:
+  "splitted (gauss_poly R (order R))"
+proof -
+  have "degree q \<le> 1" if 
+    a:"q \<in> carrier P" "pirreducible (carrier R) q" "q pdivides gauss_poly R (order R)" for q
+  proof -
+    have q_carr: "q \<in> carrier M" 
+      using a unfolding ring_irreducible_def by simp
+    moreover have "Divisibility.irreducible M q" 
+      using a unfolding ring_irreducible_def
+      by (intro p.irreducible_imp_irreducible_mult a, simp_all)
+    ultimately obtain p where p_def: "monic_irreducible_poly R p" "q \<sim>\<^bsub>M\<^esub> p"
+      using monic_poly_span by auto
+    have p_carr: "p \<in> carrier P" "p \<noteq> []" 
+      using p_def(1) unfolding monic_irreducible_poly_def monic_poly_def by auto
+    moreover have "p divides\<^bsub>M\<^esub> q"
+      using associatedE[OF p_def(2)] by auto
+    hence "p pdivides q"
+      unfolding pdivides_def using divides_mult_imp_divides by simp
+    moreover have "q pdivides gauss_poly R (order R^1)"
+      using a(3) by simp
+    ultimately have "p pdivides gauss_poly R (order R^1)"
+      unfolding pdivides_def using p.divides_trans by blast
+    hence "degree p dvd 1"
+      using  div_gauss_poly_iff[where n="1"] p_def(1) by simp
+    hence "degree p = 1" by simp
+    moreover have "q divides\<^bsub>M\<^esub> p"
+      using associatedE[OF p_def(2)] by auto
+    hence "q pdivides p"
+      unfolding pdivides_def using divides_mult_imp_divides by simp
+    hence "degree q \<le> degree p"
+      using a(1) p_carr
+      by (intro pdivides_imp_degree_le[OF carrier_is_subring]) auto
+    ultimately show ?thesis by simp
+  qed
+
+  thus ?thesis
+    using gauss_poly_carr
+    by (intro trivial_factors_imp_splitted, auto)
+qed
+
+
 lemma multiplicity_of_factor_of_gauss_poly:
   assumes "n > 0"
   assumes "monic_irreducible_poly R f"
@@ -433,10 +476,10 @@ proof (cases "degree f dvd n")
   hence o21: "order R^n > 0" by linarith
 
   obtain d :: nat where order_dim: "order R = char R ^ d" "d > 0"
-    using finite_field_order[OF fin_carr] by blast
+    using finite_field_order by blast
   have "d * n > 0" using order_dim assms by simp
   hence char_dvd_order: "int (char R) dvd int (order R ^ n)"
-    unfolding order_dim using finite_carr_imp_char_ge_0[OF fin_carr]
+    unfolding order_dim using finite_carr_imp_char_ge_0[OF finite_carrier]
     by (simp add:power_mult[symmetric])
 
   interpret h: ring_hom_ring  "R" "P" "poly_of_const"
@@ -536,7 +579,7 @@ proof -
     have "{f. monic_irreducible_poly R f \<and> degree f = k} \<subseteq> {f. f \<in> carrier P \<and> degree f \<le> k}"
       unfolding monic_irreducible_poly_def monic_poly_def by auto
     moreover have "finite {f. f \<in> carrier P \<and> degree f \<le> k}" 
-      using finite_poly[OF carrier_is_subring fin_carr] by simp
+      using finite_poly[OF carrier_is_subring finite_carrier] by simp
     ultimately show ?thesis using finite_subset by simp
   qed
 
