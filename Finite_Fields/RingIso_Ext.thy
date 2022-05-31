@@ -255,7 +255,6 @@ proof -
   interpret pds: domain "poly_ring S"
     using ds.univ_poly_is_domain[OF ds.carrier_is_subring] by simp
 
-
   have mh_inj_on: "inj_on (map h) (carrier (poly_ring R))" 
     using lift_iso unfolding ring_iso_def bij_betw_def by auto
   moreover have "map h \<zero>\<^bsub>poly_ring R\<^esub> = \<zero>\<^bsub>poly_ring S\<^esub>" by (simp add:univ_poly_zero)

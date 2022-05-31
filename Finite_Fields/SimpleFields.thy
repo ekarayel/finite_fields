@@ -71,14 +71,23 @@ proof -
   thus ?thesis  using assms(2) finite_fieldI by auto 
 qed
 
-lemma card_zfact_carr: 
+lemma 
   assumes "p > 0"
-  shows "card (carrier (ZFact (int p))) = p"
+  shows card_zfact_carr: "card (carrier (ZFact (int p))) = p"
+    and fin_zfact: "finite (carrier (ZFact (int p)))"
   sorry
 
 lemma zfact_prime_is_finite_field:
   assumes "Factorial_Ring.prime p"
-  shows "finite_field (ZFact p)"
-  sorry
+  shows "finite_field (ZFact (int p))"
+proof -
+  have p_gt_0: "p > 0" using assms(1) prime_gt_0_nat by simp
+  have "Factorial_Ring.prime (int p)" 
+    using assms by simp
+  moreover have "finite (carrier (ZFact (int p)))" 
+    using fin_zfact[OF p_gt_0] by simp
+  ultimately show ?thesis
+    by (intro finite_domains_are_fields ZFact_prime_is_domain, auto)
+qed
 
 end
