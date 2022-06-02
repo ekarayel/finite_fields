@@ -95,6 +95,8 @@ next
   then show ?thesis by (simp add:int_embed_zero)
 qed
 
+text \<open>This result can be found in \cite[Theorem 1.44]{lidl1986}.\<close>
+
 lemma (in domain) characteristic_is_prime:
   assumes "char R > 0"
   shows "prime (char R)"
@@ -183,23 +185,6 @@ lemma (in cring) char_ring_is_subcring:
 lemma (in domain) char_ring_is_subdomain:
   "subdomain (char_subring R) R"
   using subdomainI'[OF char_ring_is_subring] by auto
-
-lemma (in ring)   (* not useful *)
-  "char R dvd order R"
-proof -
-  have "subring (int_embed R ` carrier int_ring) R"
-    by (intro ring_hom_ring.img_is_subring[OF int_embed_ring_hom])
-     (intro ring.carrier_is_subring int.is_ring)
-  hence "subring (char_subring R) R"
-    by simp
-  hence a:"subgroup (char_subring R) (add_monoid R)"
-    using subring.axioms by auto
-  have "card (char_subring R) dvd order (add_monoid R)"
-    using add.lagrange[OF a] 
-    by (metis dvd_triv_right)
-  thus ?thesis
-    by (simp add: char_def order_def)
-qed
 
 lemma image_set_eqI:
   assumes "\<And>x. x \<in> A \<Longrightarrow> f x \<in> B"

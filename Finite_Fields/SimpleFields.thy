@@ -71,11 +71,85 @@ proof -
   thus ?thesis  using assms(2) finite_fieldI by auto 
 qed
 
-lemma 
-  assumes "p > 0"
-  shows card_zfact_carr: "card (carrier (ZFact (int p))) = p"
-    and fin_zfact: "finite (carrier (ZFact (int p)))"
-  sorry
+definition zfact_iso :: "nat \<Rightarrow> nat \<Rightarrow> int set" where
+  "zfact_iso p k = Idl\<^bsub>\<Z>\<^esub> {int p} +>\<^bsub>\<Z>\<^esub> (int k)"
+
+context
+  fixes n :: nat
+  assumes n_gt_0: "n > 0"
+begin
+
+private abbreviation I where "I \<equiv> Idl\<^bsub>\<Z>\<^esub> {int n}"
+
+private lemma ideal_I: "ideal I \<Z>"
+  by (simp add: int.genideal_ideal)
+
+lemma int_cosetI:
+  assumes "u mod (int n) = v mod (int n)"
+  shows "Idl\<^bsub>\<Z>\<^esub> {int n} +>\<^bsub>\<Z>\<^esub> u = Idl\<^bsub>\<Z>\<^esub> {int n} +>\<^bsub>\<Z>\<^esub> v"
+proof -
+  have "u - v \<in> I"
+    by (metis Idl_subset_eq_dvd assms int_Idl_subset_ideal mod_eq_dvd_iff)
+  thus ?thesis
+    using ideal_I int.quotient_eq_iff_same_a_r_cos by simp
+qed
+
+lemma zfact_iso_inj:
+  "inj_on (zfact_iso n) {..<n}"
+proof (rule inj_onI)
+  fix x y
+  assume a:"x \<in> {..<n}" "y \<in> {..<n}"
+  assume "zfact_iso n x = zfact_iso n y"
+  hence "I +>\<^bsub>\<Z>\<^esub> (int x) = I +>\<^bsub>\<Z>\<^esub> (int y)"
+    by (simp add:zfact_iso_def)
+  hence "int x - int y \<in> I"
+    by (subst int.quotient_eq_iff_same_a_r_cos[OF ideal_I], auto)
+  hence "int x mod int n = int y mod int n"
+    by (meson Idl_subset_eq_dvd int_Idl_subset_ideal mod_eq_dvd_iff)
+  thus "x = y"
+    using a by simp
+qed
+
+lemma zfact_iso_ran:
+  "zfact_iso n ` {..<n} = carrier (ZFact (int n))"
+proof -
+  have "zfact_iso n ` {..<n} \<subseteq> carrier (ZFact (int n))"
+    unfolding zfact_iso_def ZFact_def FactRing_simps 
+    using int.a_rcosetsI by auto
+  moreover have "\<And>x. x \<in> carrier (ZFact (int n)) \<Longrightarrow> x \<in> zfact_iso n ` {..<n}"
+  proof -
+    fix x
+    assume "x \<in> carrier (ZFact (int n))"
+    then obtain y where y_def: "x = I  +>\<^bsub>\<Z>\<^esub> y"
+      unfolding ZFact_def FactRing_simps by auto
+    obtain z where z_def: "(int z) mod (int n) = y mod (int n)" "z < n"
+      by (metis Euclidean_Division.pos_mod_sign mod_mod_trivial n_gt_0 nonneg_int_cases
+          of_nat_0_less_iff of_nat_mod unique_euclidean_semiring_numeral_class.pos_mod_bound)
+    have "x = I  +>\<^bsub>\<Z>\<^esub> y"
+      by (simp add:y_def)
+    also have "... = I +>\<^bsub>\<Z>\<^esub> (int z)"
+      by (intro int_cosetI, simp add:z_def)
+    also have "... = zfact_iso n z"
+      by (simp add:zfact_iso_def)
+    finally have "x = zfact_iso n z"
+      by simp
+    thus "x \<in> zfact_iso n ` {..<n}"
+      using z_def(2) by blast
+  qed
+  ultimately show ?thesis by auto
+qed
+
+lemma zfact_iso_bij:
+  "bij_betw (zfact_iso n) {..<n} (carrier (ZFact (int n)))"
+  using  bij_betw_def zfact_iso_inj zfact_iso_ran by blast
+
+lemma card_zfact_carr: "card (carrier (ZFact (int n))) = n"
+  using bij_betw_same_card[OF zfact_iso_bij] by simp
+
+lemma fin_zfact: "finite (carrier (ZFact (int n)))"
+  using card_zfact_carr n_gt_0 card_ge_0_finite by force
+
+end
 
 lemma zfact_prime_is_finite_field:
   assumes "Factorial_Ring.prime p"

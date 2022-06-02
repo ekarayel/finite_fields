@@ -179,7 +179,6 @@ proof -
     unfolding p_def 
     using characteristic_is_prime[OF char_pos] by simp
 
-
   interpret zf: finite_field "ZFact p"
     using zfact_prime_is_finite_field p_prime by simp
   interpret pzf: principal_domain "poly_ring (ZFact p)"

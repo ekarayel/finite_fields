@@ -1,0 +1,38 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amssymb}
+\usepackage{pdfsetup}
+\urlstyle{rm}
+\isabellestyle{it}
+
+\begin{document}
+
+\title{Finite Fields}
+\author{Emin Karayel}
+\maketitle
+
+\abstract{This entry contains a complete classification of the finite fields, in particular that
+\begin{itemize}
+\item the size of every finite field is a prime power,
+\item for each prime power there is at least one finite field of that size, and that
+\item any two finite fields of the same size are isomorphic.
+\end{itemize}
+The proof includes a formalization of the characteristics of rings, the Frobenius homomorphism, 
+formal differentiation for polynomials in HOL Algebra and Gauss formula for the number of
+monic irreducible polynomials over finite fields:
+\[
+\frac{1}{n} \sum_{d | n} \mu(d) p^{n/d} \textrm{.}
+\]
+The proofs are based on the books from Ireland and Rosen \cite[Chapter 7]{ireland1982}, as well as,
+Lidl and Niederreiter\cite{lidl1986}.
+}
+  
+\parindent 0pt\parskip 0.5ex
+
+\input{session}
+
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}

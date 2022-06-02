@@ -356,7 +356,7 @@ next
   thus ?thesis by (metis count_inI False)
 qed
 
-text \<open>Factorization of an element from a factorial_monoid using a selection of representatives 
+text \<open>Factorization of an element from a @{locale "factorial_monoid"} using a selection of representatives 
 from each equivalence class formed by @{term "(\<sim>)"}.\<close>
 
 lemma split_factors:

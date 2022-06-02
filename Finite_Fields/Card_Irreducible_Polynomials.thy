@@ -147,4 +147,41 @@ proof -
   thus ?thesis using that by simp
 qed
 
+theorem existence:
+  assumes "n > 0"
+  assumes "Factorial_Ring.prime p"
+  shows "\<exists>(F:: int set list set ring). finite_field F \<and> order F = p^n"
+proof -
+  interpret zf: finite_field "ZFact (int p)"
+    using zfact_prime_is_finite_field assms by simp
+
+  have p_gt_0: "p > 0" using prime_gt_0_nat assms(2) by simp
+
+  obtain f where f_def: "monic_irreducible_poly (ZFact (int p)) f" "degree f = n"
+    using zf.exist_irred assms by auto
+
+  let ?F  = "Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f" 
+  have "f \<in> carrier (poly_ring (ZFact (int p)))"
+    using f_def(1) zf.monic_poly_carr unfolding monic_irreducible_poly_def by simp
+  moreover have "degree f > 0"
+    using assms(1) f_def by simp
+  ultimately have "order ?F =  card (carrier (ZFact p))^degree f"
+    by (intro zf.rupture_order[OF zf.carrier_is_subfield]) auto
+  hence a:"order ?F = p^n"
+    unfolding f_def(2) card_zfact_carr[OF p_gt_0] by simp
+
+  have "field ?F"
+    using f_def(1) zf.monic_poly_carr monic_irreducible_poly_def
+    by (subst zf.rupture_is_field_iff_pirreducible[OF zf.carrier_is_subfield]) auto
+  moreover have "order ?F > 0"
+    unfolding a using assms(1,2) p_gt_0 by simp
+  ultimately have b:"finite_field ?F"
+    using card_ge_0_finite
+    by (intro finite_fieldI, auto simp add:Coset.order_def) 
+
+  show ?thesis
+    using a b
+    by (intro exI[where x="?F"], simp)
+qed
+
 end

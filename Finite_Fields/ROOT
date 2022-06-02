@@ -1,0 +1,21 @@
+chapter AFP
+
+session Finite_Fields (AFP) = "HOL-Algebra" +
+  options [timeout = 300]
+  sessions
+    Dirichlet_Series
+  theories 
+    Card_Irreducible_Polynomials
+    Degree
+    Divisibility_Ext
+    Formal_Differentiation
+    Lemma_2_3
+    Monic_Polynomial_Factorization
+    Ring_Characteristic
+    RingIso_Ext
+    SimpleFields
+    Theorem_2
+    Uniqueness
+  document_files
+    "root.tex"
+    "root.bib"
