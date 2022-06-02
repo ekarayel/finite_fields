@@ -1,5 +1,7 @@
 theory SimpleFields
-  imports "HOL-Algebra.Ring_Divisibility" "HOL-Algebra.IntRing" "HOL-Computational_Algebra.Factorial_Ring"
+  imports 
+    "Finite_Fields_Preliminary_Results"
+    "HOL-Algebra.IntRing" 
 begin
 
 locale finite_field = field +

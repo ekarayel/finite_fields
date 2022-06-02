@@ -1,92 +1,7 @@
 theory Theorem_2
 imports 
-  "Lemma_2_3" "Formal_Differentiation" "Ring_Characteristic"
+  "Lemma_2_3" "Formal_Differentiation" "Ring_Characteristic" "Finite_Fields_Preliminary_Results"
 begin
-
-lemma sum'_subtractf_nat:
-  fixes f :: "'a \<Rightarrow> nat"
-  assumes "finite {i \<in> A. f i \<noteq> 0}"
-  assumes "\<And>i. i \<in> A \<Longrightarrow> g i \<le> f i"
-  shows "sum' (\<lambda>i. f i - g i) A = sum' f A - sum' g A" (is "?lhs = ?rhs")
-proof -
-  have c:"finite {i \<in> A. g i \<noteq> 0}"
-    using assms(2)
-    by (intro finite_subset[OF _ assms(1)] subsetI, force) 
-  let ?B = "{i \<in> A. f i \<noteq> 0 \<or> g i \<noteq> 0}"
-
-  have b:"?B = {i \<in> A. f i \<noteq> 0} \<union> {i \<in> A. g i \<noteq> 0}"
-    by (auto simp add:set_eq_iff)
-  have a:"finite ?B"
-    using assms(1) c by (subst b, simp)
-  have "?lhs = sum' (\<lambda>i. f i - g i) ?B"
-    by (intro sum.mono_neutral_cong_right', simp_all)
-  also have "... = sum (\<lambda>i. f i - g i) ?B"
-    by (intro sum.eq_sum a) 
-  also have "... = sum f ?B - sum g ?B"
-    using assms(2) by (subst sum_subtractf_nat, auto)
-  also have "... = sum' f ?B - sum' g ?B"
-    by (intro arg_cong2[where f="(-)"] sum.eq_sum[symmetric] a)
-  also have "... = ?rhs"
-    by (intro arg_cong2[where f="(-)"] sum.mono_neutral_cong_left', simp_all)
-  finally show ?thesis
-    by simp
-qed
-
-lemma sum'_nat_eq_0_iff:
-  fixes f :: "'a \<Rightarrow> nat"
-  assumes "finite {i \<in> A. f i \<noteq> 0}"
-  assumes "sum' f A = 0"
-  shows "\<And>i. i \<in> A \<Longrightarrow> f i = 0"
-proof -
-  let ?B = "{i \<in> A. f i \<noteq> 0}"
-
-  have "sum f ?B = sum' f ?B"
-    by (intro sum.eq_sum[symmetric] assms(1))
-  also have "... = sum' f A"
-    by (intro sum.non_neutral')
-  also have "... = 0" using assms(2) by simp
-  finally have a:"sum f ?B = 0" by simp
-  have "\<And>i. i \<in> ?B \<Longrightarrow> f i = 0"
-    using sum_nonneg_0[OF assms(1) _ a] by blast
-  thus "\<And>i. i \<in> A \<Longrightarrow> f i = 0"
-    by blast
-qed
-
-lemma sum'_eq_iff:
-  fixes f :: "'a \<Rightarrow> nat"
-  assumes "finite {i \<in> A. f i \<noteq> 0}"
-  assumes "\<And>i. i \<in> A \<Longrightarrow> f i \<ge> g i"
-  assumes "sum' f A \<le> sum' g A"
-  shows "\<forall>i \<in> A. f i = g i"
-proof -
-  have "{i \<in> A. g i \<noteq> 0} \<subseteq> {i \<in> A. f i \<noteq> 0}"
-    using assms(2) order_less_le_trans
-    by (intro subsetI, auto) 
-  hence a:"finite {i \<in> A. g i \<noteq> 0}"
-    by (rule finite_subset, intro assms(1))
-  have " {i \<in> A. f i - g i \<noteq> 0} \<subseteq> {i \<in> A. f i \<noteq> 0}" 
-    by (intro subsetI, simp_all)
-  hence b: "finite {i \<in> A. f i - g i \<noteq> 0}" 
-    by (rule finite_subset, intro assms(1))
-  have "sum' (\<lambda>i. f i - g i) A = sum' f A - sum' g A"
-    using assms(1,2) a by (subst sum'_subtractf_nat, auto) 
-  also have "... = 0"
-    using assms(3) by simp
-  finally have "sum' (\<lambda>i. f i - g i) A = 0" by simp
-  hence "\<And>i. i \<in> A \<Longrightarrow> f i - g i = 0"
-    using sum'_nat_eq_0_iff[OF b] by simp
-  thus ?thesis
-    using assms(2) diff_is_0_eq' diffs0_imp_equal by blast
-qed
-
-lemma (in ring) poly_of_const_inj:
-  "inj poly_of_const"
-proof -
-  have "coeff (poly_of_const x) 0 = x" for x 
-    unfolding poly_of_const_def normalize_coeff[symmetric]
-    by simp
-  thus ?thesis by (metis injI)
-qed
 
 lemma (in domain)
   assumes "subfield K R"
@@ -458,7 +373,6 @@ proof -
     using gauss_poly_carr
     by (intro trivial_factors_imp_splitted, auto)
 qed
-
 
 lemma multiplicity_of_factor_of_gauss_poly:
   assumes "n > 0"

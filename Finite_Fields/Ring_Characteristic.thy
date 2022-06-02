@@ -1,6 +1,145 @@
 theory Ring_Characteristic
-  imports "Formal_Differentiation" "HOL-Algebra.IntRing" "SimpleFields"
+  imports 
+    "SimpleFields"
+    "HOL-Algebra.IntRing" 
+    "HOL-Algebra.Embedded_Algebras"
 begin
+
+definition int_embed :: "_ \<Rightarrow> int \<Rightarrow> _"  where
+  "int_embed R k = add_pow R k \<one>\<^bsub>R\<^esub>"
+
+lemma (in ring) add_pow_consistent:
+  fixes i :: "int"
+  assumes "subring K R"
+  assumes "k \<in> K"
+  shows "add_pow R i k = add_pow (R \<lparr> carrier := K \<rparr>) i k" (is "?lhs = ?rhs")
+proof -
+  have a:"subgroup K (add_monoid R)" 
+    using assms(1) subring.axioms by auto
+  have "add_pow R i k = k [^]\<^bsub>add_monoid R\<lparr>carrier := K\<rparr>\<^esub> i" 
+    using add.int_pow_consistent[OF a assms(2)] by simp
+  also have "... = ?rhs"
+    unfolding add_pow_def by simp
+  finally show ?thesis by simp
+qed
+
+lemma (in ring) int_embed_consistent:
+  assumes "subring K R"
+  shows "int_embed R i = int_embed (R \<lparr> carrier := K \<rparr>) i"
+proof -
+  have a:"\<one> = \<one>\<^bsub>R \<lparr> carrier := K \<rparr>\<^esub>" by simp
+  have b:"\<one>\<^bsub>R\<lparr>carrier := K\<rparr>\<^esub> \<in> K" 
+    using assms subringE(3) by auto
+  show ?thesis
+    unfolding int_embed_def a using b add_pow_consistent[OF assms(1)] by simp
+qed
+
+lemma (in ring) int_embed_closed:
+  "int_embed R k \<in> carrier R"
+  unfolding int_embed_def using add.int_pow_closed by simp
+
+lemma (in ring) int_embed_range:
+  assumes "subring K R"
+  shows "int_embed R k \<in> K"
+proof -
+  let ?R' =  "R \<lparr> carrier := K \<rparr>"
+  interpret x:ring ?R'
+    using subring_is_ring[OF assms] by simp
+  have "int_embed R k = int_embed ?R' k"
+    using int_embed_consistent[OF assms] by simp
+  also have "...  \<in> K"
+    using x.int_embed_closed by simp
+  finally show ?thesis by simp
+qed
+
+lemma (in ring) int_embed_zero:
+  "int_embed R 0 = \<zero>\<^bsub>R\<^esub>"
+  by (simp add:int_embed_def add_pow_def)  
+
+lemma (in ring) int_embed_one:
+  "int_embed R 1 = \<one>\<^bsub>R\<^esub>"
+  by (simp add:int_embed_def)  
+
+lemma (in ring) int_embed_add:
+  "int_embed R (x+y) = int_embed R x \<oplus>\<^bsub>R\<^esub> int_embed R y"
+  by (simp add:int_embed_def add.int_pow_mult)  
+
+lemma (in ring) int_embed_inv:
+  "int_embed R (-x) = \<ominus>\<^bsub>R\<^esub> int_embed R x" (is "?lhs = ?rhs")
+proof -
+  have "?lhs = int_embed R (-x) \<oplus> (int_embed R x \<ominus> int_embed R x)"
+    using int_embed_closed by simp
+  also have "... = int_embed R (-x) \<oplus> int_embed R x \<oplus> (\<ominus> int_embed R x)"
+    using int_embed_closed by (subst a_minus_def, subst a_assoc, auto)
+  also have "... = int_embed R (-x +x) \<oplus> (\<ominus> int_embed R x)"
+    by (subst int_embed_add, simp)
+  also have "... = ?rhs"
+    using int_embed_closed
+    by (simp add:int_embed_zero)
+  finally show ?thesis by simp
+qed
+
+lemma (in ring) int_embed_diff:
+  "int_embed R (x-y) = int_embed R x \<ominus>\<^bsub>R\<^esub> int_embed R y" (is "?lhs = ?rhs")
+proof -
+  have "?lhs = int_embed R (x + (-y))"  by simp
+  also have "... = ?rhs" by (subst int_embed_add, simp add:a_minus_def int_embed_inv)
+  finally show ?thesis by simp
+qed
+
+lemma (in ring) int_embed_mult_aux:
+  "int_embed R (x*int y) = int_embed R x \<otimes> int_embed R y"
+proof (induction y)
+  case 0
+  then show ?case by (simp add:int_embed_closed int_embed_zero)
+next
+  case (Suc y)
+  have "int_embed R (x * int (Suc y)) = int_embed R (x + x * int y)"
+    by (simp add:algebra_simps) 
+  also have "... = int_embed R x \<oplus> int_embed R (x * int y)"
+    by (subst int_embed_add, simp)
+  also have "... = int_embed R x \<otimes> \<one> \<oplus> int_embed R x \<otimes> int_embed R y"
+    using int_embed_closed
+    by (subst Suc, simp)
+  also have "... = int_embed R x \<otimes> (int_embed R 1 \<oplus> int_embed R y)"
+    using int_embed_closed by (subst r_distr, simp_all add:int_embed_one)
+  also have "... = int_embed R x \<otimes> int_embed R (1+int y)"
+    by (subst int_embed_add, simp)
+  also have "... = int_embed R x \<otimes> int_embed R (Suc y)"
+    by simp
+  finally show ?case by simp
+qed
+
+lemma (in ring) int_embed_mult:
+  "int_embed R (x*y) = int_embed R x \<otimes>\<^bsub>R\<^esub> int_embed R y"
+proof (cases "y \<ge> 0")
+  case True
+  then obtain y' where y_def: "y = int y'" using nonneg_int_cases by auto
+  have "int_embed R (x * y) = int_embed R (x * int y')"
+    unfolding y_def by simp
+  also have "... = int_embed R x \<otimes> int_embed R y'"
+    by (subst int_embed_mult_aux, simp)
+  also have "... = int_embed R x \<otimes> int_embed R y"
+    unfolding y_def by simp
+  finally show ?thesis by simp
+next
+  case False
+  then obtain y' where y_def: "y = - int y'" 
+    by (meson nle_le nonpos_int_cases)
+  have "int_embed R (x * y) = int_embed R (-(x * int y'))"
+    unfolding y_def by simp
+  also have "... = \<ominus> (int_embed R (x * int y'))"
+    by (subst int_embed_inv, simp)
+  also have "... = \<ominus> (int_embed R x \<otimes> int_embed R y')"
+    by (subst int_embed_mult_aux, simp)
+  also have "... = int_embed R x \<otimes> \<ominus> int_embed R y'"
+    using int_embed_closed by algebra
+  also have "... = int_embed R x \<otimes> int_embed R (-y')"
+    by (subst int_embed_inv, simp)
+  also have "... = int_embed R x \<otimes> int_embed R y"
+    unfolding y_def by simp
+  finally show ?thesis by simp
+qed
 
 lemma (in ring) int_embed_ring_hom: "ring_hom_ring int_ring R (int_embed R)"
 proof (rule ring_hom_ringI) 
@@ -560,6 +699,5 @@ proof -
   finally show ?thesis
     by simp
 qed
-
 
 end

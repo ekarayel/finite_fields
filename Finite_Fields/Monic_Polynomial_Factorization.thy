@@ -1,8 +1,6 @@
 theory Monic_Polynomial_Factorization
 imports
-  Divisibility_Ext Degree
-  Formal_Differentiation
-  "HOL-Algebra.Polynomial_Divisibility"
+  Finite_Fields_Preliminary_Results
 begin
 
 lemma (in domain) finprod_mult_of:
@@ -255,7 +253,6 @@ proof -
   thus "f = g"
     using u_def assms monic_poly_carr by simp
 qed
-
 
 lemma monic_poly_span:
   assumes "x \<in> carrier M" "irreducible M x"

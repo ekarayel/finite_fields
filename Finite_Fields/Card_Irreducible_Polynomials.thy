@@ -1,24 +1,39 @@
 theory Card_Irreducible_Polynomials
-  imports "Dirichlet_Series.Moebius_Mu" "Theorem_2"
+  imports 
+    "Dirichlet_Series.Moebius_Mu"
+    "Theorem_2"
 begin
 
-abbreviation order where "order \<equiv> Coset.order"
+hide_const "Polynomial.order"
+
+text \<open>The following theorem is a slightly generalized form of the formula discovered by
+Gauss, he verified the result for the case when @{term "R"} is a prime field.
+It was later generalized to the case where @{term "R"} is an arbitrary finite fields.
+A statement of this generalized form can for example be found in Chebolu and 
+Min{\'a}{\v{c}}~\cite{chebolu2010}.\<close>
 
 theorem (in finite_field) card_irred:
   assumes "n > 0"
   shows "n * card {f. monic_irreducible_poly R f \<and> degree f = n} = 
-    (\<Sum>d | d dvd n. moebius_mu d * (order R^(n div d)))" (is "?lhs = ?rhs")
+    (\<Sum>d | d dvd n. moebius_mu d * (order R^(n div d)))"
+    (is "?lhs = ?rhs")
 proof -
-  have "?lhs = dirichlet_prod moebius_mu (\<lambda>x. int (card (carrier R) ^ x)) n"
-    using corrolary_1 unfolding Coset.order_def
-    by (intro moebius_inversion assms, simp)
+  have "?lhs = dirichlet_prod moebius_mu (\<lambda>x. int (order R) ^ x) n"
+    using corrolary_1
+    by (intro moebius_inversion assms) (simp flip:of_nat_power) 
   also have "... = ?rhs"
-    by (simp add:dirichlet_prod_def Coset.order_def)
+    by (simp add:dirichlet_prod_def)
   finally show ?thesis by simp
 qed
 
+text \<open>In the following an explicit analytic lower bound for the cardinality of monic irreducible
+polynomials is shown, with which existence follows. This part deviates from the classic approach, 
+where existence is verified using a divisibility argument. The reason for the deviation is that an
+analytic bound can also be used to estimate the runtime of a randomized algorithm selecting an 
+irreducible polynomial, by randomly sampling monic polynomials.\<close>
+
 lemma (in finite_field) card_irred_1:
-  shows "card {f. monic_irreducible_poly R f \<and> degree f = 1} = order R" 
+  "card {f. monic_irreducible_poly R f \<and> degree f = 1} = order R" 
 proof -
   have "int (1 * card {f. monic_irreducible_poly R f \<and> degree f = 1}) = int (order R)"
     by (subst card_irred, auto)
@@ -26,7 +41,7 @@ proof -
 qed
 
 lemma (in finite_field) card_irred_2:
-  shows "real (card {f. monic_irreducible_poly R f \<and> degree f = 2}) = 
+  "real (card {f. monic_irreducible_poly R f \<and> degree f = 2}) = 
     (real (order R)^2 - order R) / 2" 
 proof -
   have "x dvd 2 \<Longrightarrow> x = 1 \<or> x = 2" for x :: nat

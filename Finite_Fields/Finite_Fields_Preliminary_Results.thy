@@ -1,9 +1,105 @@
-theory Divisibility_Ext
-  imports "HOL-Algebra.Divisibility" "HOL-Algebra.FiniteProduct"
+section \<open>Preliminary Results\<close>
+
+theory Finite_Fields_Preliminary_Results
+  imports "HOL-Algebra.Polynomial_Divisibility"
 begin
+
+subsection \<open>Summation in the discrete topology\<close>
+
+text \<open>The following lemmas transfer the corresponding result from the summation over finite sets
+to summation over functions which vanish outside of a finite set. The reason the latter concept
+of summation is useful in this entry, stems from the fact that elements of a factorial monoid
+can be represented as products over a possibly infinite set of irreducible factors, where 
+only finitely many occur with a non-zero power.\<close>
+
+lemma sum'_subtractf_nat:
+  fixes f :: "'a \<Rightarrow> nat"
+  assumes "finite {i \<in> A. f i \<noteq> 0}"
+  assumes "\<And>i. i \<in> A \<Longrightarrow> g i \<le> f i"
+  shows "sum' (\<lambda>i. f i - g i) A = sum' f A - sum' g A" (is "?lhs = ?rhs")
+proof -
+  have c:"finite {i \<in> A. g i \<noteq> 0}"
+    using assms(2)
+    by (intro finite_subset[OF _ assms(1)] subsetI, force) 
+  let ?B = "{i \<in> A. f i \<noteq> 0 \<or> g i \<noteq> 0}"
+
+  have b:"?B = {i \<in> A. f i \<noteq> 0} \<union> {i \<in> A. g i \<noteq> 0}"
+    by (auto simp add:set_eq_iff)
+  have a:"finite ?B"
+    using assms(1) c by (subst b, simp)
+  have "?lhs = sum' (\<lambda>i. f i - g i) ?B"
+    by (intro sum.mono_neutral_cong_right', simp_all)
+  also have "... = sum (\<lambda>i. f i - g i) ?B"
+    by (intro sum.eq_sum a) 
+  also have "... = sum f ?B - sum g ?B"
+    using assms(2) by (subst sum_subtractf_nat, auto)
+  also have "... = sum' f ?B - sum' g ?B"
+    by (intro arg_cong2[where f="(-)"] sum.eq_sum[symmetric] a)
+  also have "... = ?rhs"
+    by (intro arg_cong2[where f="(-)"] sum.mono_neutral_cong_left', simp_all)
+  finally show ?thesis
+    by simp
+qed
+
+lemma sum'_nat_eq_0_iff:
+  fixes f :: "'a \<Rightarrow> nat"
+  assumes "finite {i \<in> A. f i \<noteq> 0}"
+  assumes "sum' f A = 0"
+  shows "\<And>i. i \<in> A \<Longrightarrow> f i = 0"
+proof -
+  let ?B = "{i \<in> A. f i \<noteq> 0}"
+
+  have "sum f ?B = sum' f ?B"
+    by (intro sum.eq_sum[symmetric] assms(1))
+  also have "... = sum' f A"
+    by (intro sum.non_neutral')
+  also have "... = 0" using assms(2) by simp
+  finally have a:"sum f ?B = 0" by simp
+  have "\<And>i. i \<in> ?B \<Longrightarrow> f i = 0"
+    using sum_nonneg_0[OF assms(1) _ a] by blast
+  thus "\<And>i. i \<in> A \<Longrightarrow> f i = 0"
+    by blast
+qed
+
+lemma sum'_eq_iff:
+  fixes f :: "'a \<Rightarrow> nat"
+  assumes "finite {i \<in> A. f i \<noteq> 0}"
+  assumes "\<And>i. i \<in> A \<Longrightarrow> f i \<ge> g i"
+  assumes "sum' f A \<le> sum' g A"
+  shows "\<forall>i \<in> A. f i = g i"
+proof -
+  have "{i \<in> A. g i \<noteq> 0} \<subseteq> {i \<in> A. f i \<noteq> 0}"
+    using assms(2) order_less_le_trans 
+    by (intro subsetI, auto) 
+  hence a:"finite {i \<in> A. g i \<noteq> 0}"
+    by (rule finite_subset, intro assms(1))
+  have " {i \<in> A. f i - g i \<noteq> 0} \<subseteq> {i \<in> A. f i \<noteq> 0}" 
+    by (intro subsetI, simp_all)
+  hence b: "finite {i \<in> A. f i - g i \<noteq> 0}" 
+    by (rule finite_subset, intro assms(1))
+  have "sum' (\<lambda>i. f i - g i) A = sum' f A - sum' g A"
+    using assms(1,2) a by (subst sum'_subtractf_nat, auto) 
+  also have "... = 0"
+    using assms(3) by simp
+  finally have "sum' (\<lambda>i. f i - g i) A = 0" by simp
+  hence "\<And>i. i \<in> A \<Longrightarrow> f i - g i = 0"
+    using sum'_nat_eq_0_iff[OF b] by simp
+  thus ?thesis
+    using assms(2) diff_is_0_eq' diffs0_imp_equal by blast
+qed
+
+subsection \<open>Factorization\<close>
+
+text \<open>This section contains additional results building on top of the development in
+@{theory "HOL-Algebra.Divisibility"}.\<close>
 
 definition factor_mset 
   where "factor_mset G x = (THE f. (\<exists> as. f = fmset G as \<and> wfactors G as x \<and> set as \<subseteq> carrier G))"
+
+text \<open>In @{theory "HOL-Algebra.Divisibility"} it is already verified that the multiset representing
+the factorization of an element of a factorial monoid into irreducible factors is well-defined.
+With these results it is then possible to define @{term "factor_mset"} and show its properties,
+without referring to a factorization in list form first.\<close>
 
 definition multiplicity where
   "multiplicity G d g = Max {(n::nat). (d [^]\<^bsub>G\<^esub> n) divides\<^bsub>G\<^esub> g}"
@@ -14,6 +110,11 @@ definition canonical_irreducibles where
     (\<forall>x y. x \<in> A \<longrightarrow> y \<in> A \<longrightarrow> x \<sim>\<^bsub>G\<^esub> y \<longrightarrow> x = y) \<and>
     (\<forall>x \<in> carrier G. irreducible G x \<longrightarrow> (\<exists>y \<in> A. x \<sim>\<^bsub>G\<^esub> y))
   )"
+
+text \<open>A set of irreducible elements that contains exactly one element from each equivalence class
+of an irreducible element formed by association, is called a set of 
+@{term "canonical_irreducibles"}. An example is the set of monic irreducible polynomials as
+representatives of all irreducible polynomials.\<close>
 
 context factorial_monoid
 begin
@@ -58,7 +159,6 @@ proof -
   thus ?thesis
     using b unfolding H_def by auto
 qed
-
 
 lemma factor_mset_aux:
   assumes "a \<in> carrier G"
@@ -450,5 +550,177 @@ proof -
 qed
 
 end
+
+subsection \<open>Polynomials\<close>
+
+text \<open>The embedding of the constant polynomials into the polynomials is injective:\<close>
+
+lemma (in ring) poly_of_const_inj:
+  "inj poly_of_const"
+proof -
+  have "coeff (poly_of_const x) 0 = x" for x 
+    unfolding poly_of_const_def normalize_coeff[symmetric]
+    by simp
+  thus ?thesis by (metis injI)
+qed
+
+text \<open>The following are versions of the properties of the degree's of polynomials, that abstract
+over the definition of the polynomial ring structure.
+
+In the theories @{theory "HOL-Algebra.Polynomials"} and 
+@{theory "HOL-Algebra.Polynomial_Divisibility"} these abstract version are usually indicated with
+the suffix ``shell'', e.g.: @{thm [source] "domain.pdivides_iff_shell"}.\<close>
+
+lemma (in ring) degree_add_distinct:
+  assumes "subring K R" 
+  assumes "f \<in> carrier (K[X]) - {\<zero>\<^bsub>K[X]\<^esub>}"
+  assumes "g \<in> carrier (K[X]) - {\<zero>\<^bsub>K[X]\<^esub>}"
+  assumes "degree f \<noteq> degree g"
+  shows "degree (f \<oplus>\<^bsub>K[X]\<^esub> g) = max (degree f) (degree g)"
+  unfolding univ_poly_add using assms(2,3,4) 
+  by (subst poly_add_degree_eq[OF assms(1)])
+    (auto simp:univ_poly_carrier univ_poly_zero)
+
+lemma (in domain) degree_mult:
+  assumes "subring K R" 
+  assumes "f \<in> carrier (K[X]) - {\<zero>\<^bsub>K[X]\<^esub>}"
+  assumes "g \<in> carrier (K[X]) - {\<zero>\<^bsub>K[X]\<^esub>}"
+  shows "degree (f \<otimes>\<^bsub>K[X]\<^esub> g) = degree f + degree g"
+  unfolding univ_poly_mult using assms(2,3) 
+  by (subst poly_mult_degree_eq[OF assms(1)])
+    (auto simp:univ_poly_carrier univ_poly_zero)
+
+lemma (in ring) degree_one:
+  "degree (\<one>\<^bsub>K[X]\<^esub>) = 0"
+  unfolding univ_poly_one by simp
+
+lemma (in domain) pow_non_zero: "x \<in> carrier R \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> x [^] (n :: nat) \<noteq> \<zero>"
+  using integral by (induction n, auto) 
+
+lemma (in domain) degree_pow:
+  assumes "subring K R" 
+  assumes "f \<in> carrier (K[X]) - {\<zero>\<^bsub>K[X]\<^esub>}"
+  shows "degree (f [^]\<^bsub>K[X]\<^esub> n) = degree f * n"
+proof -
+  interpret p:domain "K[X]"
+    using univ_poly_is_domain[OF assms(1)] by simp
+
+  show ?thesis
+  proof (induction n)
+    case 0
+    then show ?case by (simp add:univ_poly_one)
+  next
+    case (Suc n)
+    have "degree (f [^]\<^bsub>K [X]\<^esub> Suc n) = degree (f [^]\<^bsub>K [X]\<^esub> n \<otimes>\<^bsub>K[X]\<^esub> f)"
+      by simp
+    also have "... = degree (f [^]\<^bsub>K [X]\<^esub> n) + degree f"
+      using p.pow_non_zero assms(2)
+      by (subst degree_mult[OF assms(1)], auto)
+    also have "... = degree f * Suc n"
+      by (subst Suc, simp)
+    finally show ?case by simp
+  qed
+qed
+
+lemma (in ring) degree_var:
+  "degree (X\<^bsub>R\<^esub>) = 1"
+  unfolding var_def by simp
+
+lemma (in domain) var_carr:
+  fixes n :: nat
+  assumes "subring K R"
+  shows "X\<^bsub>R\<^esub> \<in> carrier (K[X]) - {\<zero>\<^bsub>K [X]\<^esub>}"
+proof -
+  have "X\<^bsub>R\<^esub> \<in> carrier (K[X])" 
+    using var_closed[OF assms(1)] by simp
+  moreover have "X \<noteq> \<zero>\<^bsub>K [X]\<^esub>"
+    unfolding var_def univ_poly_zero by simp
+  ultimately show ?thesis by simp
+qed
+
+lemma (in domain) var_pow_carr:
+  fixes n :: nat
+  assumes "subring K R"
+  shows "X\<^bsub>R\<^esub> [^]\<^bsub>K [X]\<^esub> n \<in> carrier (K[X]) - {\<zero>\<^bsub>K [X]\<^esub>}"
+proof -
+  interpret p:domain "K[X]"
+    using univ_poly_is_domain[OF assms(1)] by simp
+
+  have "X\<^bsub>R\<^esub> [^]\<^bsub>K [X]\<^esub> n \<in> carrier (K[X])" 
+    using var_pow_closed[OF assms(1)] by simp
+  moreover have "X \<noteq> \<zero>\<^bsub>K [X]\<^esub>"
+    unfolding var_def univ_poly_zero by simp
+  hence "X\<^bsub>R\<^esub> [^]\<^bsub>K [X]\<^esub> n \<noteq> \<zero>\<^bsub>K [X]\<^esub>"
+    using var_closed(1)[OF assms(1)]
+    by (intro p.pow_non_zero, auto)
+  ultimately show ?thesis by simp
+qed
+
+lemma (in domain) var_pow_degree:
+  fixes n :: nat
+  assumes "subring K R"
+  shows "degree (X\<^bsub>R\<^esub> [^]\<^bsub>K [X]\<^esub> n) = n"
+  using var_carr[OF assms(1)] degree_var
+  by (subst degree_pow[OF assms(1)], auto)
+
+lemma (in domain) finprod_non_zero:
+  assumes "finite A"
+  assumes "f \<in> A \<rightarrow> carrier R - {\<zero>}"
+  shows "(\<Otimes>i \<in> A. f i) \<in> carrier R - {\<zero>}"
+  using assms
+proof (induction A rule:finite_induct)
+  case empty
+  then show ?case by simp
+next
+  case (insert x F)
+  have "finprod R f (insert x F) = f x \<otimes> finprod R f F"
+    using insert by (subst finprod_insert, simp_all add:Pi_def)
+  also have "... \<in> carrier R-{\<zero>}"
+    using integral insert by auto
+  finally show ?case by simp
+qed
+
+lemma (in domain) degree_prod:
+  assumes "finite A"
+  assumes "subring K R" 
+  assumes "f \<in> A \<rightarrow> carrier (K[X]) - {\<zero>\<^bsub>K[X]\<^esub>}"
+  shows "degree (\<Otimes>\<^bsub>K[X]\<^esub>i \<in> A. f i) = (\<Sum>i \<in> A. degree (f i))"
+  using assms
+proof -
+  interpret p:domain "K[X]"
+    using univ_poly_is_domain[OF assms(2)] by simp
+
+  show ?thesis
+    using assms(1,3)
+  proof (induction A rule: finite_induct)
+    case empty
+    then show ?case by (simp add:univ_poly_one)
+  next
+    case (insert x F)
+    have "degree (finprod (K [X]) f (insert x F)) = degree (f x \<otimes>\<^bsub>K [X]\<^esub> finprod (K [X]) f F)"
+      using insert by (subst p.finprod_insert, auto)
+    also have "... = degree (f x) + degree (finprod (K [X]) f F)"
+      using insert p.finprod_non_zero[OF insert(1)]
+      by (subst degree_mult[OF assms(2)], simp_all) 
+    also have "... = degree (f x) + (\<Sum>i \<in> F. degree (f i))"
+      using insert by (subst insert(3), auto) 
+    also have "... = (\<Sum>i \<in> insert x F. degree (f i))"
+      using insert by simp
+    finally show ?case by simp
+  qed
+qed
+
+lemma (in ring) coeff_add:
+  assumes "subring K R"
+  assumes "f \<in> carrier (K[X])" "g \<in> carrier (K[X])"
+  shows "coeff (f \<oplus>\<^bsub>K[X]\<^esub> g) i = coeff f i \<oplus>\<^bsub>R\<^esub> coeff g i"
+proof -
+  have a:"set f \<subseteq> carrier R"
+    using assms(1,2) univ_poly_carrier subringE(1)[OF assms(1)] polynomial_incl by blast
+  have b:"set g \<subseteq> carrier R" 
+    using assms(1,3) univ_poly_carrier subringE(1)[OF assms(1)] polynomial_incl by blast
+  show ?thesis
+    unfolding univ_poly_add poly_add_coeff[OF a b] by simp
+qed
 
 end

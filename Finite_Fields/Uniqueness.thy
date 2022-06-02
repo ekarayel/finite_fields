@@ -266,7 +266,6 @@ proof -
     by (intro ring_hom_ringI2 rupt_is_ring ring_axioms, simp)
 qed
 
-
 lemma (in domain) pdivides_consistent:
   assumes "subfield K R" "f \<in> carrier (K[X])" "g \<in> carrier (K[X])"
   shows "f pdivides g \<longleftrightarrow> f pdivides\<^bsub>R \<lparr> carrier := K \<rparr>\<^esub> g"
@@ -481,14 +480,14 @@ proof -
   have p_prime: "Factorial_Ring.prime p" 
     unfolding p_def(1) using f1.characteristic_is_prime char_pos by simp
 
-  interpret zf: finite_field "(ZFact (int p))"
+  interpret zf: finite_field "ZFact (int p)"
     using zfact_prime_is_finite_field p_prime o1(2) 
     using prime_nat_int_transfer by blast
 
   obtain f where f_def: "monic_irreducible_poly (ZFact (int p)) f" "degree f = n"
     using zf.exist_irred o1(2) by auto
 
-  let ?F\<^sub>0  = "(Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f)" 
+  let ?F\<^sub>0  = "Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f" 
 
   obtain \<phi>\<^sub>1 where \<phi>\<^sub>1_def: "\<phi>\<^sub>1 \<in> ring_iso ?F\<^sub>0 F\<^sub>1"
     using f1.find_iso_from_zfact f_def o1 unfolding p_def by auto

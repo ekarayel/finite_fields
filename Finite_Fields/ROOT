@@ -5,9 +5,8 @@ session Finite_Fields (AFP) = "HOL-Algebra" +
   sessions
     Dirichlet_Series
   theories 
+    Finite_Fields_Preliminary_Results
     Card_Irreducible_Polynomials
-    Degree
-    Divisibility_Ext
     Formal_Differentiation
     Lemma_2_3
     Monic_Polynomial_Factorization

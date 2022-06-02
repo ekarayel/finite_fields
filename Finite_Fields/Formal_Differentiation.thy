@@ -1,146 +1,10 @@
 theory Formal_Differentiation
-  imports "HOL-Algebra.Polynomial_Divisibility"
+  imports "HOL-Algebra.Polynomial_Divisibility" "Ring_Characteristic"
 begin
-
-definition int_embed :: "_ \<Rightarrow> int \<Rightarrow> _"  where
-  "int_embed R k = add_pow R k \<one>\<^bsub>R\<^esub>"
 
 definition pderiv ("pderiv\<index>") where 
   "pderiv\<^bsub>R\<^esub> x = ring.normalize R (
     map (\<lambda>i. int_embed R i \<otimes>\<^bsub>R\<^esub> ring.coeff R x i) (rev [1..<length x]))"
-
-lemma (in ring) add_pow_consistent:
-  fixes i :: "int"
-  assumes "subring K R"
-  assumes "k \<in> K"
-  shows "add_pow R i k = add_pow (R \<lparr> carrier := K \<rparr>) i k" (is "?lhs = ?rhs")
-proof -
-  have a:"subgroup K (add_monoid R)" 
-    using assms(1) subring.axioms by auto
-  have "add_pow R i k = k [^]\<^bsub>add_monoid R\<lparr>carrier := K\<rparr>\<^esub> i" 
-    using add.int_pow_consistent[OF a assms(2)] by simp
-  also have "... = ?rhs"
-    unfolding add_pow_def by simp
-  finally show ?thesis by simp
-qed
-
-lemma (in ring) int_embed_consistent:
-  assumes "subring K R"
-  shows "int_embed R i = int_embed (R \<lparr> carrier := K \<rparr>) i"
-proof -
-  have a:"\<one> = \<one>\<^bsub>R \<lparr> carrier := K \<rparr>\<^esub>" by simp
-  have b:"\<one>\<^bsub>R\<lparr>carrier := K\<rparr>\<^esub> \<in> K" 
-    using assms subringE(3) by auto
-  show ?thesis
-    unfolding int_embed_def a using b add_pow_consistent[OF assms(1)] by simp
-qed
-
-lemma (in ring) int_embed_closed:
-  "int_embed R k \<in> carrier R"
-  unfolding int_embed_def using add.int_pow_closed by simp
-
-lemma (in ring) int_embed_range:
-  assumes "subring K R"
-  shows "int_embed R k \<in> K"
-proof -
-  let ?R' =  "R \<lparr> carrier := K \<rparr>"
-  interpret x:ring ?R'
-    using subring_is_ring[OF assms] by simp
-  have "int_embed R k = int_embed ?R' k"
-    using int_embed_consistent[OF assms] by simp
-  also have "...  \<in> K"
-    using x.int_embed_closed by simp
-  finally show ?thesis by simp
-qed
-
-lemma (in ring) int_embed_zero:
-  "int_embed R 0 = \<zero>\<^bsub>R\<^esub>"
-  by (simp add:int_embed_def add_pow_def)  
-
-lemma (in ring) int_embed_one:
-  "int_embed R 1 = \<one>\<^bsub>R\<^esub>"
-  by (simp add:int_embed_def)  
-
-lemma (in ring) int_embed_add:
-  "int_embed R (x+y) = int_embed R x \<oplus>\<^bsub>R\<^esub> int_embed R y"
-  by (simp add:int_embed_def add.int_pow_mult)  
-
-lemma (in ring) int_embed_inv:
-  "int_embed R (-x) = \<ominus>\<^bsub>R\<^esub> int_embed R x" (is "?lhs = ?rhs")
-proof -
-  have "?lhs = int_embed R (-x) \<oplus> (int_embed R x \<ominus> int_embed R x)"
-    using int_embed_closed by simp
-  also have "... = int_embed R (-x) \<oplus> int_embed R x \<oplus> (\<ominus> int_embed R x)"
-    using int_embed_closed by (subst a_minus_def, subst a_assoc, auto)
-  also have "... = int_embed R (-x +x) \<oplus> (\<ominus> int_embed R x)"
-    by (subst int_embed_add, simp)
-  also have "... = ?rhs"
-    using int_embed_closed
-    by (simp add:int_embed_zero)
-  finally show ?thesis by simp
-qed
-
-lemma (in ring) int_embed_diff:
-  "int_embed R (x-y) = int_embed R x \<ominus>\<^bsub>R\<^esub> int_embed R y" (is "?lhs = ?rhs")
-proof -
-  have "?lhs = int_embed R (x + (-y))"  by simp
-  also have "... = ?rhs" by (subst int_embed_add, simp add:a_minus_def int_embed_inv)
-  finally show ?thesis by simp
-qed
-
-lemma (in ring) int_embed_mult_aux:
-  "int_embed R (x*int y) = int_embed R x \<otimes> int_embed R y"
-proof (induction y)
-  case 0
-  then show ?case by (simp add:int_embed_closed int_embed_zero)
-next
-  case (Suc y)
-  have "int_embed R (x * int (Suc y)) = int_embed R (x + x * int y)"
-    by (simp add:algebra_simps) 
-  also have "... = int_embed R x \<oplus> int_embed R (x * int y)"
-    by (subst int_embed_add, simp)
-  also have "... = int_embed R x \<otimes> \<one> \<oplus> int_embed R x \<otimes> int_embed R y"
-    using int_embed_closed
-    by (subst Suc, simp)
-  also have "... = int_embed R x \<otimes> (int_embed R 1 \<oplus> int_embed R y)"
-    using int_embed_closed by (subst r_distr, simp_all add:int_embed_one)
-  also have "... = int_embed R x \<otimes> int_embed R (1+int y)"
-    by (subst int_embed_add, simp)
-  also have "... = int_embed R x \<otimes> int_embed R (Suc y)"
-    by simp
-  finally show ?case by simp
-qed
-
-lemma (in ring) int_embed_mult:
-  "int_embed R (x*y) = int_embed R x \<otimes>\<^bsub>R\<^esub> int_embed R y"
-proof (cases "y \<ge> 0")
-  case True
-  then obtain y' where y_def: "y = int y'" using nonneg_int_cases by auto
-  have "int_embed R (x * y) = int_embed R (x * int y')"
-    unfolding y_def by simp
-  also have "... = int_embed R x \<otimes> int_embed R y'"
-    by (subst int_embed_mult_aux, simp)
-  also have "... = int_embed R x \<otimes> int_embed R y"
-    unfolding y_def by simp
-  finally show ?thesis by simp
-next
-  case False
-  then obtain y' where y_def: "y = - int y'" 
-    by (meson nle_le nonpos_int_cases)
-  have "int_embed R (x * y) = int_embed R (-(x * int y'))"
-    unfolding y_def by simp
-  also have "... = \<ominus> (int_embed R (x * int y'))"
-    by (subst int_embed_inv, simp)
-  also have "... = \<ominus> (int_embed R x \<otimes> int_embed R y')"
-    by (subst int_embed_mult_aux, simp)
-  also have "... = int_embed R x \<otimes> \<ominus> int_embed R y'"
-    using int_embed_closed by algebra
-  also have "... = int_embed R x \<otimes> int_embed R (-y')"
-    by (subst int_embed_inv, simp)
-  also have "... = int_embed R x \<otimes> int_embed R y"
-    unfolding y_def by simp
-  finally show ?thesis by simp
-qed
 
 context domain
 begin
@@ -212,23 +76,17 @@ next
     using int_embed_range[OF carrier_is_subring] by (simp add:a b) 
 qed
 
-
 lemma pderiv_const:
   assumes "degree x = 0"
   shows "pderiv x = \<zero>\<^bsub>K[X]\<^esub>"
-proof -
-  consider
-    (1) "length x = 0" | (2) "length x = 1"
-    using assms by linarith
-  then show ?thesis
-  proof (cases)
-    case 1
-    then show ?thesis by (simp add:univ_poly_zero pderiv_def)
-  next
-    case 2
-    then obtain y where "x = [y]" by (cases x, auto) 
-    then show ?thesis by (simp add:univ_poly_zero pderiv_def)
-  qed
+proof (cases "length x = 0")
+  case True
+  then show ?thesis  by (simp add:univ_poly_zero pderiv_def)
+next
+  case False
+  hence "length x = 1" using assms by linarith
+  then obtain y where "x = [y]" by (cases x, auto) 
+  then show ?thesis by (simp add:univ_poly_zero pderiv_def)
 qed
 
 lemma pderiv_var:
@@ -238,19 +96,6 @@ lemma pderiv_var:
 lemma pderiv_zero:
   shows "pderiv \<zero>\<^bsub>K[X]\<^esub> = \<zero>\<^bsub>K[X]\<^esub>"
   unfolding pderiv_def univ_poly_zero by simp
-
-lemma coeff_add:
-  assumes "subring K R"
-  assumes "f \<in> carrier (K[X])" "g \<in> carrier (K[X])"
-  shows "coeff (f \<oplus>\<^bsub>K[X]\<^esub> g) i = coeff f i \<oplus>\<^bsub>R\<^esub> coeff g i"
-proof -
-  have a:"set f \<subseteq> carrier R"
-    using assms(1,2) univ_poly_carrier subringE(1)[OF assms(1)] polynomial_incl by blast
-  have b:"set g \<subseteq> carrier R" 
-    using assms(1,3) univ_poly_carrier subringE(1)[OF assms(1)] polynomial_incl by blast
-  show ?thesis
-    unfolding univ_poly_add poly_add_coeff[OF a b] by simp
-qed
 
 lemma pderiv_add:
   assumes "subring K R"

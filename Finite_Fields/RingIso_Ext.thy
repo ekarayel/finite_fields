@@ -1,5 +1,5 @@
 theory RingIso_Ext
-  imports "HOL-Algebra.QuotRing" "Monic_Polynomial_Factorization"
+  imports "HOL-Algebra.QuotRing" "HOL-Algebra.Polynomial_Divisibility" "Monic_Polynomial_Factorization"
 begin
 
 lemma lift_iso_to_poly_ring:
@@ -230,7 +230,7 @@ proof -
     using assms(1) unfolding ring_iso_def bij_betw_def by auto
 
   have "irreducible R x \<longleftrightarrow> (x \<notin> Units R \<and> (\<forall>b\<in>carrier R. properfactor R b x \<longrightarrow> b \<in> Units R))"
-    unfolding irreducible_def by simp
+    unfolding Divisibility.irreducible_def by simp
   also have "... \<longleftrightarrow> (x \<notin> Units R \<and> (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> b \<in> Units R))"
     using properfactor_hom[OF assms(1,2,3)] assms(4) by simp
   also have "... \<longleftrightarrow> (h x \<notin> Units S \<and> (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> h b \<in> Units S))"
@@ -238,7 +238,7 @@ proof -
   also have "...\<longleftrightarrow> (h x \<notin> Units S \<and> (\<forall>b\<in>h ` carrier R. properfactor S b (h x) \<longrightarrow> b \<in> Units S))"
     by simp
   also have "... \<longleftrightarrow> irreducible S (h x)"
-    unfolding h_img irreducible_def by simp
+    unfolding h_img Divisibility.irreducible_def by simp
   finally show ?thesis by simp
 qed
 
