@@ -1,3 +1,5 @@
+section \<open>Factorization into Monic Polynomials\<close>
+
 theory Monic_Polynomial_Factorization
 imports
   Finite_Fields_Preliminary_Results
@@ -489,6 +491,44 @@ proof -
      simp
   thus ?thesis 
     unfolding pdivides_def using divides_mult_imp_divides by simp
+qed
+
+lemma monic_poly_hom:
+  assumes "monic_poly R f"
+  assumes "h \<in> ring_iso R S" "domain R" "domain S"
+  shows "monic_poly S (map h f)"
+proof -
+  have c: "h \<in> ring_hom R S"
+    using assms(2) ring_iso_def by auto
+  have e: "f \<in> carrier (poly_ring R)" 
+    using assms(1) unfolding monic_poly_def by simp
+
+  have a:"f \<noteq> []"
+    using assms(1) unfolding monic_poly_def by simp
+  hence "map h f \<noteq> []" by simp
+  moreover have "lead_coeff f = \<one>\<^bsub>R\<^esub>"
+    using assms(1) unfolding monic_poly_def by simp
+  hence "lead_coeff (map h f) = \<one>\<^bsub>S\<^esub>" 
+    using ring_hom_one[OF c] by (simp add: hd_map[OF a])
+  ultimately show ?thesis
+    using carrier_hom[OF e assms(2-4)]
+    unfolding monic_poly_def by simp
+qed
+
+lemma monic_irreducible_poly_hom:
+  assumes "monic_irreducible_poly R f"
+  assumes "h \<in> ring_iso R S" "domain R" "domain S"
+  shows "monic_irreducible_poly S (map h f)"
+proof -
+ have a:"pirreducible\<^bsub>R\<^esub> (carrier R) f" "f \<in> carrier (poly_ring R)"  "monic_poly R f"
+    using assms(1) unfolding monic_poly_def monic_irreducible_poly_def by auto
+ 
+  have "pirreducible\<^bsub>S\<^esub> (carrier S) (map h f)"
+    using a pirreducible_hom assms by auto  
+  moreover have "monic_poly S (map h f)"
+    using a monic_poly_hom[OF _ assms(2,3,4)] by simp
+  ultimately show ?thesis
+    unfolding monic_irreducible_poly_def by simp
 qed
 
 end

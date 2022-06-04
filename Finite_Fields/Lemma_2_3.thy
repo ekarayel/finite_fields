@@ -4,85 +4,7 @@ imports
   "Formal_Differentiation"
   "Monic_Polynomial_Factorization"
   "SimpleFields"
-
 begin
-lemma  (in field) f_comm_group_1:
-  "x \<in> carrier R \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> y \<in> carrier R \<Longrightarrow> y \<noteq> \<zero> \<Longrightarrow> x \<otimes> y = \<zero> \<Longrightarrow> False" 
-  using integral by auto
-
-lemma (in field) f_comm_group_2:
-  assumes "x \<in> carrier R"
-  assumes "x \<noteq> \<zero>"
-  shows " \<exists>y\<in>carrier R - {\<zero>}. y \<otimes> x = \<one>"
-proof -
-  have x_unit: "x \<in> Units R" using field_Units assms by simp
-  thus ?thesis unfolding Units_def by auto
-qed
-
-sublocale field < mult_of: comm_group "mult_of R"
-  rewrites "mult (mult_of R) = mult R"
-       and "one  (mult_of R) = one R"
-  by (auto intro!:comm_groupI f_comm_group_1 m_assoc m_comm f_comm_group_2)
-
-lemma (in domain) div_neg:
-  assumes "a \<in> carrier R" "b \<in> carrier R"
-  assumes "a divides b"
-  shows "a divides (\<ominus> b)"
-proof -
-  obtain r1 where r1_def: "r1 \<in> carrier R" "a \<otimes> r1 = b"
-    using assms by (auto simp:factor_def) 
-
-  have "a \<otimes> (\<ominus> r1) = \<ominus> (a \<otimes> r1)"
-    using assms(1) r1_def(1) by algebra
-  also have "... = \<ominus> b"
-    using r1_def(2) by simp
-  finally have "\<ominus>b = a \<otimes> (\<ominus> r1)" by simp
-  moreover have "\<ominus>r1 \<in> carrier R"
-    using r1_def(1) by simp
-  ultimately show ?thesis
-    by (auto simp:factor_def) 
-qed
-
-lemma (in domain) div_sum:
-  assumes "a \<in> carrier R" "b \<in> carrier R" "c \<in> carrier R"
-  assumes "a divides b"
-  assumes "a divides c"
-  shows "a divides (b \<oplus> c)"
-proof -
-  obtain r1 where r1_def: "r1 \<in> carrier R" "a \<otimes> r1 = b"
-    using assms by (auto simp:factor_def) 
-
-  obtain r2 where r2_def: "r2 \<in> carrier R" "a \<otimes> r2 = c"
-    using assms by (auto simp:factor_def) 
-
-  have "a \<otimes> (r1 \<oplus> r2) = (a \<otimes> r1) \<oplus> (a \<otimes> r2)"
-    using assms(1) r1_def(1) r2_def(1) by algebra
-  also have "... = b \<oplus> c"
-    using r1_def(2) r2_def(2) by simp
-  finally have "b \<oplus> c = a \<otimes> (r1 \<oplus> r2)" by simp
-  moreover have "r1 \<oplus> r2 \<in> carrier R"
-    using r1_def(1) r2_def(1) by simp
-  ultimately show ?thesis
-    by (auto simp:factor_def) 
-qed
-
-lemma (in domain) div_sum_iff:
-  assumes "a \<in> carrier R" "b \<in> carrier R" "c \<in> carrier R"
-  assumes "a divides b"
-  shows "a divides (b \<oplus> c) \<longleftrightarrow> a divides c"
-proof 
-  assume "a divides (b \<oplus> c)"
-  moreover have "a divides (\<ominus> b)"
-    using div_neg assms(1,2,4) by simp
-  ultimately have "a divides ((b \<oplus> c) \<oplus> (\<ominus> b))"
-    using div_sum assms by simp
-  also have "... = c" using assms(1,2,3) by algebra
-  finally show "a divides c" by simp
-next
-  assume "a divides c"
-  thus "a divides (b \<oplus> c)"
-    using assms by (intro div_sum) auto
-qed
 
 lemma (in finite_field) x_pow_n_eq_x:
   assumes "x \<in> carrier R"
@@ -500,7 +422,7 @@ lemma geom_nat:
   fixes q :: nat
   fixes x :: "_ :: {comm_ring,monoid_mult}"
   shows "(x-1) * (\<Sum>i \<in> {..<q}. x^i) = x^q-1"
-  by (induction q, simp, simp add:algebra_simps)
+  by (induction q, auto simp:algebra_simps)
 
 lemma lemma_3:
   fixes a :: int

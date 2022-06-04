@@ -1,3 +1,5 @@
+section \<open>Gauss Formula\label{sec:card_irred}\<close>
+
 theory Card_Irreducible_Polynomials
   imports 
     "Dirichlet_Series.Moebius_Mu"
@@ -7,10 +9,10 @@ begin
 hide_const "Polynomial.order"
 
 text \<open>The following theorem is a slightly generalized form of the formula discovered by
-Gauss, he verified the result for the case when @{term "R"} is a prime field.
-It was later generalized to the case where @{term "R"} is an arbitrary finite fields.
-A statement of this generalized form can for example be found in Chebolu and 
-Min{\'a}{\v{c}}~\cite{chebolu2010}.\<close>
+Gauss for the number of monic irreducible polynomials over a finite field. He originally verified 
+the result for the case when @{term "R"} is a simple prime field.
+The version of the formula here for the case where @{term "R"} may be an arbitrary finite field can
+be found in Chebolu and Min{\'a}{\v{c}}~\cite{chebolu2010}.\<close>
 
 theorem (in finite_field) card_irred:
   assumes "n > 0"

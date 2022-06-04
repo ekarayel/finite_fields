@@ -1,3 +1,13 @@
+section \<open>Introduction\<close>
+
+text \<open>The classification consists of three theorems:
+\begin{itemize}
+\item \emph{Existence}: For each prime power $p^n$ there exists a finite field of that size. This is shown at the conclusion of Section~\ref{sec:card_irred}.
+\item \emph{Uniqueness}: Any two finite fields of the same size are isomorphic. This is shown at the conclusion of Section~\ref{sec:uniq}.
+\item \emph{Completeness}: A finite fields size must be a prime power. This is shown in Section~\ref{sec:ring_char}.
+\end{itemize}
+\<close>
+
 section \<open>Preliminary Results\<close>
 
 theory Finite_Fields_Preliminary_Results
@@ -16,7 +26,8 @@ lemma sum'_subtractf_nat:
   fixes f :: "'a \<Rightarrow> nat"
   assumes "finite {i \<in> A. f i \<noteq> 0}"
   assumes "\<And>i. i \<in> A \<Longrightarrow> g i \<le> f i"
-  shows "sum' (\<lambda>i. f i - g i) A = sum' f A - sum' g A" (is "?lhs = ?rhs")
+  shows "sum' (\<lambda>i. f i - g i) A = sum' f A - sum' g A"
+    (is "?lhs = ?rhs")
 proof -
   have c:"finite {i \<in> A. g i \<noteq> 0}"
     using assms(2)
@@ -90,11 +101,13 @@ qed
 
 subsection \<open>Factorization\<close>
 
+notation carrier ("(_\<^sup>C)" [90] 90)
+
 text \<open>This section contains additional results building on top of the development in
 @{theory "HOL-Algebra.Divisibility"}.\<close>
 
-definition factor_mset 
-  where "factor_mset G x = (THE f. (\<exists> as. f = fmset G as \<and> wfactors G as x \<and> set as \<subseteq> carrier G))"
+definition factor_mset where "factor_mset G x = 
+  (THE f. (\<exists> as. f = fmset G as \<and> wfactors G as x \<and> set as \<subseteq> carrier G))"
 
 text \<open>In @{theory "HOL-Algebra.Divisibility"} it is already verified that the multiset representing
 the factorization of an element of a factorial monoid into irreducible factors is well-defined.
@@ -108,8 +121,7 @@ definition canonical_irreducibles where
   "canonical_irreducibles G A = (
     A \<subseteq> {a. a \<in> carrier G \<and> irreducible G a} \<and>
     (\<forall>x y. x \<in> A \<longrightarrow> y \<in> A \<longrightarrow> x \<sim>\<^bsub>G\<^esub> y \<longrightarrow> x = y) \<and>
-    (\<forall>x \<in> carrier G. irreducible G x \<longrightarrow> (\<exists>y \<in> A. x \<sim>\<^bsub>G\<^esub> y))
-  )"
+    (\<forall>x \<in> carrier G. irreducible G x \<longrightarrow> (\<exists>y \<in> A. x \<sim>\<^bsub>G\<^esub> y)))"
 
 text \<open>A set of irreducible elements that contains exactly one element from each equivalence class
 of an irreducible element formed by association, is called a set of 
@@ -162,7 +174,8 @@ qed
 
 lemma factor_mset_aux:
   assumes "a \<in> carrier G"
-  shows "\<exists>as. factor_mset G a = fmset G as \<and> wfactors G as a \<and> set as \<subseteq> carrier G"
+  shows "\<exists>as. factor_mset G a = fmset G as \<and> wfactors G as a \<and> 
+    set as \<subseteq> carrier G"
 proof -
   obtain as where as_def: "wfactors G as a" "set as \<subseteq> carrier G"
     using wfactors_exist assms by blast
@@ -255,7 +268,7 @@ lemma factor_mset_sim:
 lemma factor_mset_prod:
   assumes "finite A"
   assumes "f ` A \<subseteq> carrier G" 
-  shows "factor_mset G (finprod G f A) = (\<Sum>a \<in> A. factor_mset G (f a))"
+  shows "factor_mset G (\<Otimes>a \<in> A. f a) = (\<Sum>a \<in> A. factor_mset G (f a))"
   using assms
 proof (induction A rule:finite_induct)
   case empty
@@ -721,6 +734,469 @@ proof -
     using assms(1,3) univ_poly_carrier subringE(1)[OF assms(1)] polynomial_incl by blast
   show ?thesis
     unfolding univ_poly_add poly_add_coeff[OF a b] by simp
+qed
+
+subsection \<open>Ring Isomorphisms\<close>
+
+lemma lift_iso_to_poly_ring:
+  assumes "h \<in> ring_iso R S" "domain R" "domain S"
+  shows "map h \<in> ring_iso (poly_ring R) (poly_ring S)"
+proof (rule ring_iso_memI)
+  interpret dr: domain "R" using assms(2) by blast
+  interpret ds: domain "S" using assms(3) by blast
+  interpret pdr: domain "poly_ring R"
+    using dr.univ_poly_is_domain[OF dr.carrier_is_subring] by simp
+  interpret pds: domain "poly_ring S"
+    using ds.univ_poly_is_domain[OF ds.carrier_is_subring] by simp
+  interpret h: ring_hom_ring "R" "S" h
+    using dr.is_ring ds.is_ring assms(1)
+    by (intro ring_hom_ringI2, simp_all add:ring_iso_def)
+  let ?R = "poly_ring R"
+  let ?S = "poly_ring S"
+
+  have h_img: "h ` (carrier R) = carrier S" 
+    using assms(1) unfolding ring_iso_def bij_betw_def by auto
+  have h_inj: "inj_on h (carrier R)" 
+    using assms(1) unfolding ring_iso_def bij_betw_def by auto
+  hence h_non_zero_iff: "x \<noteq> \<zero>\<^bsub>R\<^esub> \<Longrightarrow> x \<in> carrier R \<Longrightarrow> h x \<noteq> \<zero>\<^bsub>S\<^esub>" for x
+    using h.hom_zero dr.zero_closed inj_onD by metis
+
+  have norm_elim: "ds.normalize (map h x) = map h x" if a:"x \<in> carrier (poly_ring R)" for x 
+  proof (cases "x")
+    case Nil then show ?thesis by simp
+  next
+    case (Cons xh xt)
+    have "xh \<in> carrier R" "xh \<noteq> \<zero>\<^bsub>R\<^esub>"
+      using a unfolding Cons univ_poly_carrier[symmetric] polynomial_def by auto
+    hence "h xh \<noteq> \<zero>\<^bsub>S\<^esub>" using h_non_zero_iff by simp
+    then show ?thesis unfolding Cons by simp
+  qed
+
+  show t_1: "map h x \<in> carrier ?S" if a:"x \<in> carrier ?R" for x
+    using a hd_in_set h_non_zero_iff hd_map
+    unfolding univ_poly_carrier[symmetric] polynomial_def 
+    by (cases x, auto)
+
+  show "map h (x \<otimes>\<^bsub>?R\<^esub> y) = map h x \<otimes>\<^bsub>?S\<^esub> map h y" if a:"x \<in> carrier ?R" "y \<in> carrier ?R" for x y
+  proof -
+    have "map h (x \<otimes>\<^bsub>?R\<^esub> y) = ds.normalize (map h (x \<otimes>\<^bsub>?R\<^esub> y))"
+      using a by (intro norm_elim[symmetric],simp) 
+    also have "... = map h x \<otimes>\<^bsub>?S\<^esub> map h y"
+      using a unfolding univ_poly_mult univ_poly_carrier[symmetric] polynomial_def
+      by (intro h.poly_mult_hom'[of x y] , auto)
+    finally show ?thesis by simp
+  qed
+
+  show "map h (x \<oplus>\<^bsub>?R\<^esub> y) = map h x \<oplus>\<^bsub>?S\<^esub> map h y" if a:"x \<in> carrier ?R" "y \<in> carrier ?R" for x y
+  proof -
+    have "map h (x \<oplus>\<^bsub>?R\<^esub> y) = ds.normalize (map h (x \<oplus>\<^bsub>?R\<^esub> y))"
+      using a by (intro norm_elim[symmetric],simp) 
+    also have "... = map h x \<oplus>\<^bsub>?S\<^esub> map h y"
+      using a unfolding univ_poly_add univ_poly_carrier[symmetric] polynomial_def
+      by (intro h.poly_add_hom'[of x y], auto)
+    finally show ?thesis by simp
+  qed
+
+  show "map h \<one>\<^bsub>?R\<^esub> = \<one>\<^bsub>?S\<^esub>" 
+    unfolding univ_poly_one by simp
+
+  let ?hinv = "map (the_inv_into (carrier R) h)"
+
+  have "map h \<in> carrier ?R \<rightarrow> carrier ?S" 
+    using t_1 by simp
+  moreover have "?hinv x \<in> carrier ?R" if a: "x \<in> carrier ?S" for x
+  proof (cases "x = []")
+    case True
+    then show ?thesis by (simp add:univ_poly_carrier[symmetric] polynomial_def)
+  next
+    case False
+    have set_x: "set x \<subseteq> h ` carrier R" 
+      using a h_img unfolding univ_poly_carrier[symmetric] polynomial_def by auto
+
+    have "lead_coeff x \<noteq> \<zero>\<^bsub>S\<^esub>" "lead_coeff x \<in> carrier S"
+      using a False unfolding univ_poly_carrier[symmetric] polynomial_def by auto
+    hence "the_inv_into (carrier R) h (lead_coeff x) \<noteq> the_inv_into (carrier R) h \<zero>\<^bsub>S\<^esub>" 
+      using inj_on_the_inv_into[OF h_inj] inj_onD ds.zero_closed h_img by metis
+    hence "the_inv_into (carrier R) h (lead_coeff x) \<noteq> \<zero>\<^bsub>R\<^esub>" 
+      unfolding h.hom_zero[symmetric] the_inv_into_f_f[OF h_inj dr.zero_closed] by simp
+    hence "lead_coeff (?hinv x) \<noteq> \<zero>\<^bsub>R\<^esub>" 
+      using False by (simp add:hd_map)
+    moreover have "the_inv_into (carrier R) h ` set x \<subseteq> carrier R" 
+      using the_inv_into_into[OF h_inj] set_x
+      by (intro image_subsetI) auto
+    hence "set (?hinv x) \<subseteq> carrier R" by simp 
+    ultimately show ?thesis by (simp add:univ_poly_carrier[symmetric] polynomial_def)
+  qed
+  moreover have "?hinv (map h x) = x" if a:"x \<in> carrier ?R" for x 
+  proof -
+    have set_x: "set x \<subseteq> carrier R" 
+      using a unfolding univ_poly_carrier[symmetric] polynomial_def by auto
+    have "?hinv (map h x) = map (\<lambda>y. the_inv_into (carrier R) h (h y)) x"
+      by simp
+    also have "... = map id x"
+      using set_x by (intro map_cong, auto simp add:the_inv_into_f_f[OF h_inj])
+    also have "... = x" by simp
+    finally show ?thesis by simp
+  qed
+  moreover have "map h (?hinv x) = x" if a:"x \<in> carrier ?S" for x
+  proof -
+    have set_x: "set x \<subseteq> h ` carrier R" 
+      using a h_img unfolding univ_poly_carrier[symmetric] polynomial_def by auto
+    have "map h (?hinv x) = map (\<lambda>y. h (the_inv_into (carrier R) h y)) x"
+      by simp
+    also have "... = map id x"
+      using set_x by (intro map_cong, auto simp add:f_the_inv_into_f[OF h_inj])
+    also have "... = x" by simp
+    finally show ?thesis by simp
+  qed
+  ultimately show "bij_betw (map h) (carrier ?R) (carrier ?S)" 
+    by (intro bij_betwI[where g="?hinv"], auto) 
+qed
+
+lemma carrier_hom:
+  assumes "f \<in> carrier (poly_ring R)"
+  assumes "h \<in> ring_iso R S" "domain R" "domain S"
+  shows "map h f \<in> carrier (poly_ring S)"
+proof -
+  note poly_iso = lift_iso_to_poly_ring[OF assms(2,3,4)] 
+  show ?thesis
+    using ring_iso_memE(1)[OF poly_iso assms(1)] by simp
+qed
+
+lemma divides_hom:
+  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R" "y \<in> carrier R"
+  shows "x divides\<^bsub>R\<^esub> y \<longleftrightarrow> (h x) divides\<^bsub>S\<^esub> (h y)"  (is "?lhs \<longleftrightarrow> ?rhs")
+proof -
+  interpret dr: domain "R" using assms(2) by blast
+  interpret ds: domain "S" using assms(3) by blast
+  interpret pdr: domain "poly_ring R"
+    using dr.univ_poly_is_domain[OF dr.carrier_is_subring] by simp
+  interpret pds: domain "poly_ring S"
+    using ds.univ_poly_is_domain[OF ds.carrier_is_subring] by simp
+  interpret h: ring_hom_ring "R" "S" h
+    using dr.is_ring ds.is_ring assms(1)
+    by (intro ring_hom_ringI2, simp_all add:ring_iso_def)
+
+  have h_inj_on: "inj_on h (carrier R)" 
+    using assms(1) unfolding ring_iso_def bij_betw_def by auto
+  have h_img: "h ` (carrier R) = carrier S" 
+    using assms(1) unfolding ring_iso_def bij_betw_def by auto
+
+  have "?lhs \<longleftrightarrow> (\<exists>c \<in> carrier R. y = x \<otimes>\<^bsub>R\<^esub> c)"
+    unfolding factor_def by simp
+  also have "... \<longleftrightarrow> (\<exists>c \<in> carrier R. h y = h x \<otimes>\<^bsub>S\<^esub> h c)"
+    using assms(4,5) inj_onD[OF h_inj_on]
+    by (intro bex_cong, auto simp flip:h.hom_mult) 
+  also have "... \<longleftrightarrow> (\<exists>c \<in> carrier S. h y = h x  \<otimes>\<^bsub>S\<^esub> c)"
+    unfolding h_img[symmetric] by simp
+  also have "... \<longleftrightarrow> ?rhs" 
+    unfolding factor_def by simp
+  finally show ?thesis by simp
+qed
+
+lemma properfactor_hom:
+  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R" "b \<in> carrier R"
+  shows "properfactor R b x \<longleftrightarrow> properfactor S (h b) (h x)" 
+  using divides_hom[OF assms(1,2,3)] assms(4,5)
+  unfolding properfactor_def by simp
+
+lemma Units_hom:
+  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R"
+  shows "x \<in> Units R \<longleftrightarrow>  h x \<in> Units S"
+proof -
+
+  interpret dr: domain "R" using assms(2) by blast
+  interpret ds: domain "S" using assms(3) by blast
+  interpret pdr: domain "poly_ring R"
+    using dr.univ_poly_is_domain[OF dr.carrier_is_subring] by simp
+  interpret pds: domain "poly_ring S"
+    using ds.univ_poly_is_domain[OF ds.carrier_is_subring] by simp
+  interpret h: ring_hom_ring "R" "S" h
+    using dr.is_ring ds.is_ring assms(1)
+    by (intro ring_hom_ringI2, simp_all add:ring_iso_def)
+
+  have h_img: "h ` (carrier R) = carrier S" 
+    using assms(1) unfolding ring_iso_def bij_betw_def by auto
+
+  have h_inj_on: "inj_on h (carrier R)" 
+    using assms(1) unfolding ring_iso_def bij_betw_def by auto
+
+  hence h_one_iff: "h x = \<one>\<^bsub>S\<^esub> \<longleftrightarrow> x = \<one>\<^bsub>R\<^esub>" if "x \<in> carrier R" for x
+    using h.hom_one that by (metis dr.one_closed inj_onD)
+
+  have "x \<in> Units R \<longleftrightarrow> (\<exists>y\<in>carrier R. x \<otimes>\<^bsub>R\<^esub> y = \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>R\<^esub> x = \<one>\<^bsub>R\<^esub>)"
+    using assms unfolding Units_def by auto
+  also have "... \<longleftrightarrow>  (\<exists>y\<in>carrier R. h x \<otimes>\<^bsub>S\<^esub> h y = h \<one>\<^bsub>R\<^esub> \<and> h y \<otimes>\<^bsub>S\<^esub> h x = h \<one>\<^bsub>R\<^esub>)"
+    using h_one_iff assms by (intro bex_cong, simp_all flip:h.hom_mult)
+  also have "... \<longleftrightarrow> (\<exists>y\<in>carrier S. h x \<otimes>\<^bsub>S\<^esub> y = h \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>S\<^esub> h x = \<one>\<^bsub>S\<^esub>)"
+    unfolding h_img[symmetric] by simp
+  also have "... \<longleftrightarrow> h x \<in> Units S"
+    using assms h.hom_closed unfolding Units_def by auto
+  finally show ?thesis by simp
+qed
+
+
+
+lemma irreducible_hom:
+  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R"
+  shows "irreducible R x = irreducible S (h x)"
+proof -
+  have h_img: "h ` (carrier R) = carrier S" 
+    using assms(1) unfolding ring_iso_def bij_betw_def by auto
+
+  have "irreducible R x \<longleftrightarrow> (x \<notin> Units R \<and> (\<forall>b\<in>carrier R. properfactor R b x \<longrightarrow> b \<in> Units R))"
+    unfolding Divisibility.irreducible_def by simp
+  also have "... \<longleftrightarrow> (x \<notin> Units R \<and> (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> b \<in> Units R))"
+    using properfactor_hom[OF assms(1,2,3)] assms(4) by simp
+  also have "... \<longleftrightarrow> (h x \<notin> Units S \<and> (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> h b \<in> Units S))"
+    using assms(4) Units_hom[OF assms(1,2,3)] by simp
+  also have "...\<longleftrightarrow> (h x \<notin> Units S \<and> (\<forall>b\<in>h ` carrier R. properfactor S b (h x) \<longrightarrow> b \<in> Units S))"
+    by simp
+  also have "... \<longleftrightarrow> irreducible S (h x)"
+    unfolding h_img Divisibility.irreducible_def by simp
+  finally show ?thesis by simp
+qed
+
+lemma pirreducible_hom:
+  assumes "h \<in> ring_iso R S" "domain R" "domain S"
+  assumes "f \<in> carrier (poly_ring R)"
+  shows "pirreducible\<^bsub>R\<^esub> (carrier R) f = pirreducible\<^bsub>S\<^esub> (carrier S) (map h f)" (is "?lhs = ?rhs")
+proof -
+  note lift_iso = lift_iso_to_poly_ring[OF assms(1,2,3)]
+  interpret dr: domain "R" using assms(2) by blast
+  interpret ds: domain "S" using assms(3) by blast
+  interpret pdr: domain "poly_ring R"
+    using dr.univ_poly_is_domain[OF dr.carrier_is_subring] by simp
+  interpret pds: domain "poly_ring S"
+    using ds.univ_poly_is_domain[OF ds.carrier_is_subring] by simp
+
+  have mh_inj_on: "inj_on (map h) (carrier (poly_ring R))" 
+    using lift_iso unfolding ring_iso_def bij_betw_def by auto
+  moreover have "map h \<zero>\<^bsub>poly_ring R\<^esub> = \<zero>\<^bsub>poly_ring S\<^esub>" by (simp add:univ_poly_zero)
+  ultimately have mh_zero_iff: "map h f = \<zero>\<^bsub>poly_ring S\<^esub> \<longleftrightarrow> f = \<zero>\<^bsub>poly_ring R\<^esub>"
+    using assms(4) by (metis pdr.zero_closed inj_onD)
+
+  have "?lhs \<longleftrightarrow> (f \<noteq> \<zero>\<^bsub>poly_ring R\<^esub> \<and> irreducible (poly_ring R) f)"
+    unfolding ring_irreducible_def by simp
+  also have "... \<longleftrightarrow> (f \<noteq> \<zero>\<^bsub>poly_ring R\<^esub> \<and> irreducible (poly_ring S) (map h f))"
+    using irreducible_hom[OF lift_iso pdr.domain_axioms pds.domain_axioms] assms(4) by simp
+  also have "... \<longleftrightarrow> (map h f \<noteq> \<zero>\<^bsub>poly_ring S\<^esub> \<and> irreducible (poly_ring S) (map h f))"
+    using mh_zero_iff by simp
+  also have "... \<longleftrightarrow> ?rhs"
+    unfolding ring_irreducible_def by simp
+  finally show ?thesis by simp
+qed
+
+
+lemma ring_hom_cong:
+  assumes "\<And>x. x \<in> carrier R \<Longrightarrow> f' x = f x" 
+  assumes "ring R"
+  assumes "f \<in> ring_hom R S"
+  shows "f' \<in> ring_hom R S"
+proof -
+  interpret ring "R" using assms(2) by simp
+  show ?thesis 
+    using assms(1) ring_hom_memE[OF assms(3)]
+    by (intro ring_hom_memI, auto) 
+qed
+
+lemma (in ring) quot_quot_hom: 
+  assumes "ideal I R"
+  assumes "ideal J R"
+  assumes "I \<subseteq> J"
+  shows "(\<lambda>x. (J <+>\<^bsub>R\<^esub> x)) \<in> ring_hom (R Quot I) (R Quot J)"  
+proof (rule ring_hom_memI)
+  interpret ji: ideal J R
+    using assms(2) by simp
+  interpret ii: ideal I R
+    using assms(1) by simp
+
+  have a:"J <+>\<^bsub>R\<^esub> I = J"
+    using assms(3) unfolding set_add_def set_mult_def by auto
+
+  show "J <+>\<^bsub>R\<^esub> x \<in> carrier (R Quot J)" if "x \<in> carrier (R Quot I)" for x
+  proof -
+    have " \<exists>y\<in>carrier R. x = I +> y" 
+      using that unfolding FactRing_def A_RCOSETS_def' by simp
+    then obtain y where y_def: "y \<in> carrier R" "x = I +> y"
+      by auto
+    have "J <+>\<^bsub>R\<^esub> (I +> y) = (J <+>\<^bsub>R\<^esub> I) +> y"
+      using y_def(1) by (subst a_setmult_rcos_assoc) auto
+    also have "... = J +> y" using a by simp
+    finally have "J <+>\<^bsub>R\<^esub> (I +> y) = J +> y" by simp
+    thus ?thesis
+      using y_def unfolding FactRing_def A_RCOSETS_def' by auto 
+  qed
+
+  show "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y = (J <+>\<^bsub>R\<^esub> x) \<otimes>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
+    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)" for x y
+  proof -
+    have "\<exists>x1\<in>carrier R. x = I +> x1" "\<exists>y1\<in>carrier R. y = I +> y1" 
+      using that unfolding FactRing_def A_RCOSETS_def' by auto
+    then obtain x1 y1 
+      where x1_def: "x1 \<in> carrier R" "x = I +> x1"
+        and y1_def: "y1 \<in> carrier R" "y = I +> y1"
+      by auto
+    have "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y =  J <+>\<^bsub>R\<^esub> (I +> x1 \<otimes> y1)"
+      using x1_def y1_def
+      by (simp add: FactRing_def ii.rcoset_mult_add)
+    also have "... = (J <+>\<^bsub>R\<^esub> I) +> x1 \<otimes> y1"
+      using x1_def(1) y1_def(1)
+      by (subst a_setmult_rcos_assoc) auto
+    also have "... = J +> x1 \<otimes> y1"
+      using a by simp
+    also have "... = [mod J:] (J +> x1) \<Otimes> (J +> y1)" 
+      using x1_def(1) y1_def(1) by (subst ji.rcoset_mult_add, auto)
+    also have "... = [mod J:] ((J <+>\<^bsub>R\<^esub> I) +> x1) \<Otimes> ((J <+>\<^bsub>R\<^esub> I) +> y1)" 
+      using a by simp
+    also have "... = [mod J:] (J <+>\<^bsub>R\<^esub> (I +> x1)) \<Otimes> (J <+>\<^bsub>R\<^esub> (I +> y1))"
+      using x1_def(1) y1_def(1)
+      by (subst (1 2) a_setmult_rcos_assoc) auto
+    also have "... = (J <+>\<^bsub>R\<^esub> x) \<otimes>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
+      using x1_def y1_def by (simp add: FactRing_def)
+    finally show ?thesis by simp
+  qed
+
+  show "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = (J <+>\<^bsub>R\<^esub> x) \<oplus>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
+    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)" for x y
+  proof -
+    have "\<exists>x1\<in>carrier R. x = I +> x1" "\<exists>y1\<in>carrier R. y = I +> y1" 
+      using that unfolding FactRing_def A_RCOSETS_def' by auto
+    then obtain x1 y1 
+      where x1_def: "x1 \<in> carrier R" "x = I +> x1"
+        and y1_def: "y1 \<in> carrier R" "y = I +> y1"
+      by auto
+    have "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = J <+>\<^bsub>R\<^esub> ((I +> x1) <+>\<^bsub>R\<^esub> (I +> y1))"
+      using x1_def y1_def by (simp add:FactRing_def)
+    also have "... = J <+>\<^bsub>R\<^esub> (I +> (x1 \<oplus> y1))"
+      using x1_def y1_def ii.a_rcos_sum by simp
+    also have "... = (J <+>\<^bsub>R\<^esub> I) +> (x1 \<oplus> y1)"
+      using x1_def y1_def by (subst a_setmult_rcos_assoc) auto
+    also have "... = J +> (x1 \<oplus> y1)"
+      using a by simp
+    also have "... = ((J <+>\<^bsub>R\<^esub> I) +> x1) <+>\<^bsub>R\<^esub> ((J <+>\<^bsub>R\<^esub> I) +> y1)"
+      using x1_def y1_def ji.a_rcos_sum a by simp
+    also have "... =  J <+>\<^bsub>R\<^esub> (I +> x1) <+>\<^bsub>R\<^esub> (J <+>\<^bsub>R\<^esub> (I +> y1))" 
+      using x1_def y1_def by (subst (1 2) a_setmult_rcos_assoc) auto
+    also have "... = (J <+>\<^bsub>R\<^esub> x) \<oplus>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
+      using x1_def y1_def by (simp add:FactRing_def)
+    finally show ?thesis by simp
+  qed
+
+  have "J <+>\<^bsub>R\<^esub> \<one>\<^bsub>R Quot I\<^esub> = J <+>\<^bsub>R\<^esub> (I +> \<one>)"
+    unfolding FactRing_def by simp
+  also have "... = (J <+>\<^bsub>R\<^esub> I) +> \<one>" 
+    by (subst a_setmult_rcos_assoc) auto
+  also have "... = J +> \<one>" using a by simp
+  also have "... = \<one>\<^bsub>R Quot J\<^esub>"
+    unfolding FactRing_def by simp
+  finally show "J <+>\<^bsub>R\<^esub> \<one>\<^bsub>R Quot I\<^esub> = \<one>\<^bsub>R Quot J\<^esub>" 
+    by simp
+qed
+
+lemma (in ring) quot_carr:
+  assumes "ideal I R"
+  assumes "y \<in> carrier (R Quot I)"
+  shows "y \<subseteq> carrier R"
+proof -
+  interpret ideal I R using assms(1) by simp
+  have "y \<in> a_rcosets I"
+    using assms(2) unfolding FactRing_def by simp
+  then obtain v where y_def: "y = I +> v" "v \<in> carrier R"
+    unfolding A_RCOSETS_def' by auto
+  have "I +> v \<subseteq> carrier R" 
+    using y_def(2) a_r_coset_subset_G a_subset by presburger
+  thus "y \<subseteq> carrier R" unfolding y_def by simp
+qed
+
+lemma (in ring) set_add_zero:
+  assumes "A \<subseteq> carrier R"
+  shows "{\<zero>} <+>\<^bsub>R\<^esub> A = A"
+proof -
+  have "{\<zero>} <+>\<^bsub>R\<^esub> A = (\<Union>x\<in>A. {\<zero> \<oplus> x})"
+    using assms unfolding set_add_def set_mult_def by simp
+  also have "... = (\<Union>x\<in>A. {x})"
+    using assms by (intro arg_cong[where f="Union"] image_cong, auto)
+  also have "... = A" by simp
+  finally show ?thesis by simp
+qed
+
+lemma  (in field) f_comm_group_1:
+  "x \<in> carrier R \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> y \<in> carrier R \<Longrightarrow> y \<noteq> \<zero> \<Longrightarrow> x \<otimes> y = \<zero> \<Longrightarrow> False" 
+  using integral by auto
+
+lemma (in field) f_comm_group_2:
+  assumes "x \<in> carrier R"
+  assumes "x \<noteq> \<zero>"
+  shows " \<exists>y\<in>carrier R - {\<zero>}. y \<otimes> x = \<one>"
+proof -
+  have x_unit: "x \<in> Units R" using field_Units assms by simp
+  thus ?thesis unfolding Units_def by auto
+qed
+
+sublocale field < mult_of: comm_group "mult_of R"
+  rewrites "mult (mult_of R) = mult R"
+       and "one  (mult_of R) = one R"
+  by (auto intro!:comm_groupI f_comm_group_1 m_assoc m_comm f_comm_group_2)
+
+lemma (in domain) div_neg:
+  assumes "a \<in> carrier R" "b \<in> carrier R"
+  assumes "a divides b"
+  shows "a divides (\<ominus> b)"
+proof -
+  obtain r1 where r1_def: "r1 \<in> carrier R" "a \<otimes> r1 = b"
+    using assms by (auto simp:factor_def) 
+
+  have "a \<otimes> (\<ominus> r1) = \<ominus> (a \<otimes> r1)"
+    using assms(1) r1_def(1) by algebra
+  also have "... = \<ominus> b"
+    using r1_def(2) by simp
+  finally have "\<ominus>b = a \<otimes> (\<ominus> r1)" by simp
+  moreover have "\<ominus>r1 \<in> carrier R"
+    using r1_def(1) by simp
+  ultimately show ?thesis
+    by (auto simp:factor_def) 
+qed
+
+lemma (in domain) div_sum:
+  assumes "a \<in> carrier R" "b \<in> carrier R" "c \<in> carrier R"
+  assumes "a divides b"
+  assumes "a divides c"
+  shows "a divides (b \<oplus> c)"
+proof -
+  obtain r1 where r1_def: "r1 \<in> carrier R" "a \<otimes> r1 = b"
+    using assms by (auto simp:factor_def) 
+
+  obtain r2 where r2_def: "r2 \<in> carrier R" "a \<otimes> r2 = c"
+    using assms by (auto simp:factor_def) 
+
+  have "a \<otimes> (r1 \<oplus> r2) = (a \<otimes> r1) \<oplus> (a \<otimes> r2)"
+    using assms(1) r1_def(1) r2_def(1) by algebra
+  also have "... = b \<oplus> c"
+    using r1_def(2) r2_def(2) by simp
+  finally have "b \<oplus> c = a \<otimes> (r1 \<oplus> r2)" by simp
+  moreover have "r1 \<oplus> r2 \<in> carrier R"
+    using r1_def(1) r2_def(1) by simp
+  ultimately show ?thesis
+    by (auto simp:factor_def) 
+qed
+
+lemma (in domain) div_sum_iff:
+  assumes "a \<in> carrier R" "b \<in> carrier R" "c \<in> carrier R"
+  assumes "a divides b"
+  shows "a divides (b \<oplus> c) \<longleftrightarrow> a divides c"
+proof 
+  assume "a divides (b \<oplus> c)"
+  moreover have "a divides (\<ominus> b)"
+    using div_neg assms(1,2,4) by simp
+  ultimately have "a divides ((b \<oplus> c) \<oplus> (\<ominus> b))"
+    using div_sum assms by simp
+  also have "... = c" using assms(1,2,3) by algebra
+  finally show "a divides c" by simp
+next
+  assume "a divides c"
+  thus "a divides (b \<oplus> c)"
+    using assms by (intro div_sum) auto
 qed
 
 end

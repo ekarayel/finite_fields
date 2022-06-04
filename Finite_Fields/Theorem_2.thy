@@ -9,16 +9,16 @@ lemma (in domain)
   shows rupture_order: "order (Rupt K f) = card K^degree f"
     and rupture_char: "char (Rupt K f) = char R"
 proof -
-  interpret p:principal_domain "(K[X])"
+  interpret p: principal_domain "K[X]"
     using univ_poly_is_principal[OF assms(1)] by simp
 
   interpret I: ideal "PIdl\<^bsub>K[X]\<^esub> f" "K[X]"
     using p.cgenideal_ideal[OF assms(2)] by simp
 
-  interpret d:ring "Rupt K f"
+  interpret d: ring "Rupt K f"
     unfolding rupture_def using I.quotient_is_ring by simp
 
-  have e:"subring K R"
+  have e: "subring K R"
     using assms(1) subfieldE(1) by auto
 
   interpret h:ring_hom_ring "R \<lparr> carrier := K \<rparr>" "Rupt K f" "rupture_surj K f \<circ> poly_of_const"
@@ -78,8 +78,6 @@ proof -
 
 qed
 
-
-
 context finite_field 
 begin
 
@@ -89,8 +87,7 @@ interpretation polynomial_notation "R"
 interpretation p:principal_domain "poly_ring R"
   by (simp add: carrier_is_subfield univ_poly_is_principal)
 
-lemma order_min:
-  "order R > 1"
+lemma order_min: "order R > 1"
   using finite_field_min_order by simp
 
 lemma div_gauss_poly_iff:
@@ -103,7 +100,7 @@ proof -
   have f_deg: "degree f > 0" 
     using assms(2) monic_poly_min_degree by fastforce
 
-  define K where "K = Rupt\<^bsub>R\<^esub> (carrier R) f"
+  define K where "K = Rupt\<^bsub>R\<^esub> (R\<^sup>C) f"
   have field_K: "field K"
     using assms(2) unfolding K_def monic_irreducible_poly_def monic_poly_def
     by (subst rupture_is_field_iff_pirreducible[OF carrier_is_subfield])  auto

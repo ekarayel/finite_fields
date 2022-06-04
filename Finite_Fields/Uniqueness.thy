@@ -1,166 +1,11 @@
+section \<open>Uniqueness\<close>
+
 theory Uniqueness
   imports
     Theorem_2
     Card_Irreducible_Polynomials
     SimpleFields
-    RingIso_Ext
 begin
-
-definition char_iso :: "_ \<Rightarrow> int set \<Rightarrow> 'a" where "char_iso R x = the_elem (int_embed R ` x)"
-
-lemma (in ring) char_iso:
-  "char_iso R \<in> ring_iso (ZFact (int (char R))) (R\<lparr>carrier := char_subring R\<rparr>)"
-proof -
-  interpret h: ring_hom_ring "int_ring" "R" "int_embed R"
-    using int_embed_ring_hom by simp
-
-  have "a_kernel \<Z> R (int_embed R) = {x. int_embed R x = \<zero>}"
-    unfolding a_kernel_def kernel_def by simp
-  also have "... = {x. char R dvd x}"
-    using embed_char_eq_0_iff by simp
-  also have "... = PIdl\<^bsub>\<Z>\<^esub> (int (char R))" 
-    unfolding cgenideal_def by auto
-  also have "... = Idl\<^bsub>\<Z>\<^esub> {int (char R)}"
-    using int.cgenideal_eq_genideal by simp
-  finally have a:"a_kernel \<Z> R (int_embed R) = Idl\<^bsub>\<Z>\<^esub> {int (char R)}"
-    by simp
-  show  "?thesis"
-    unfolding char_iso_def ZFact_def a[symmetric]
-    by (intro h.FactRing_iso_set_aux)
-qed
-
-lemma ring_hom_cong:
-  assumes "\<And>x. x \<in> carrier R \<Longrightarrow> f' x = f x" 
-  assumes "ring R"
-  assumes "f \<in> ring_hom R S"
-  shows "f' \<in> ring_hom R S"
-proof -
-  interpret ring "R" using assms(2) by simp
-  show ?thesis 
-    using assms(1) ring_hom_memE[OF assms(3)]
-    by (intro ring_hom_memI, auto) 
-qed
-
-lemma (in ring) quot_quot_hom: 
-  assumes "ideal I R"
-  assumes "ideal J R"
-  assumes "I \<subseteq> J"
-  shows "(\<lambda>x. (J <+>\<^bsub>R\<^esub> x)) \<in> ring_hom (R Quot I) (R Quot J)"  
-proof (rule ring_hom_memI)
-  interpret ji: ideal J R
-    using assms(2) by simp
-  interpret ii: ideal I R
-    using assms(1) by simp
-
-  have a:"J <+>\<^bsub>R\<^esub> I = J"
-    using assms(3) unfolding set_add_def set_mult_def by auto
-
-  show "J <+>\<^bsub>R\<^esub> x \<in> carrier (R Quot J)" if "x \<in> carrier (R Quot I)" for x
-  proof -
-    have " \<exists>y\<in>carrier R. x = I +> y" 
-      using that unfolding FactRing_def A_RCOSETS_def' by simp
-    then obtain y where y_def: "y \<in> carrier R" "x = I +> y"
-      by auto
-    have "J <+>\<^bsub>R\<^esub> (I +> y) = (J <+>\<^bsub>R\<^esub> I) +> y"
-      using y_def(1) by (subst a_setmult_rcos_assoc) auto
-    also have "... = J +> y" using a by simp
-    finally have "J <+>\<^bsub>R\<^esub> (I +> y) = J +> y" by simp
-    thus ?thesis
-      using y_def unfolding FactRing_def A_RCOSETS_def' by auto 
-  qed
-
-  show "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y = (J <+>\<^bsub>R\<^esub> x) \<otimes>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
-    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)" for x y
-  proof -
-    have "\<exists>x1\<in>carrier R. x = I +> x1" "\<exists>y1\<in>carrier R. y = I +> y1" 
-      using that unfolding FactRing_def A_RCOSETS_def' by auto
-    then obtain x1 y1 
-      where x1_def: "x1 \<in> carrier R" "x = I +> x1"
-        and y1_def: "y1 \<in> carrier R" "y = I +> y1"
-      by auto
-    have "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y =  J <+>\<^bsub>R\<^esub> (I +> x1 \<otimes> y1)"
-      using x1_def y1_def
-      by (simp add: FactRing_def ii.rcoset_mult_add)
-    also have "... = (J <+>\<^bsub>R\<^esub> I) +> x1 \<otimes> y1"
-      using x1_def(1) y1_def(1)
-      by (subst a_setmult_rcos_assoc) auto
-    also have "... = J +> x1 \<otimes> y1"
-      using a by simp
-    also have "... = [mod J:] (J +> x1) \<Otimes> (J +> y1)" 
-      using x1_def(1) y1_def(1) by (subst ji.rcoset_mult_add, auto)
-    also have "... = [mod J:] ((J <+>\<^bsub>R\<^esub> I) +> x1) \<Otimes> ((J <+>\<^bsub>R\<^esub> I) +> y1)" 
-      using a by simp
-    also have "... = [mod J:] (J <+>\<^bsub>R\<^esub> (I +> x1)) \<Otimes> (J <+>\<^bsub>R\<^esub> (I +> y1))"
-      using x1_def(1) y1_def(1)
-      by (subst (1 2) a_setmult_rcos_assoc) auto
-    also have "... = (J <+>\<^bsub>R\<^esub> x) \<otimes>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
-      using x1_def y1_def by (simp add: FactRing_def)
-    finally show ?thesis by simp
-  qed
-
-  show "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = (J <+>\<^bsub>R\<^esub> x) \<oplus>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
-    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)" for x y
-  proof -
-    have "\<exists>x1\<in>carrier R. x = I +> x1" "\<exists>y1\<in>carrier R. y = I +> y1" 
-      using that unfolding FactRing_def A_RCOSETS_def' by auto
-    then obtain x1 y1 
-      where x1_def: "x1 \<in> carrier R" "x = I +> x1"
-        and y1_def: "y1 \<in> carrier R" "y = I +> y1"
-      by auto
-    have "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = J <+>\<^bsub>R\<^esub> ((I +> x1) <+>\<^bsub>R\<^esub> (I +> y1))"
-      using x1_def y1_def by (simp add:FactRing_def)
-    also have "... = J <+>\<^bsub>R\<^esub> (I +> (x1 \<oplus> y1))"
-      using x1_def y1_def ii.a_rcos_sum by simp
-    also have "... = (J <+>\<^bsub>R\<^esub> I) +> (x1 \<oplus> y1)"
-      using x1_def y1_def by (subst a_setmult_rcos_assoc) auto
-    also have "... = J +> (x1 \<oplus> y1)"
-      using a by simp
-    also have "... = ((J <+>\<^bsub>R\<^esub> I) +> x1) <+>\<^bsub>R\<^esub> ((J <+>\<^bsub>R\<^esub> I) +> y1)"
-      using x1_def y1_def ji.a_rcos_sum a by simp
-    also have "... =  J <+>\<^bsub>R\<^esub> (I +> x1) <+>\<^bsub>R\<^esub> (J <+>\<^bsub>R\<^esub> (I +> y1))" 
-      using x1_def y1_def by (subst (1 2) a_setmult_rcos_assoc) auto
-    also have "... = (J <+>\<^bsub>R\<^esub> x) \<oplus>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
-      using x1_def y1_def by (simp add:FactRing_def)
-    finally show ?thesis by simp
-  qed
-
-  have "J <+>\<^bsub>R\<^esub> \<one>\<^bsub>R Quot I\<^esub> = J <+>\<^bsub>R\<^esub> (I +> \<one>)"
-    unfolding FactRing_def by simp
-  also have "... = (J <+>\<^bsub>R\<^esub> I) +> \<one>" 
-    by (subst a_setmult_rcos_assoc) auto
-  also have "... = J +> \<one>" using a by simp
-  also have "... = \<one>\<^bsub>R Quot J\<^esub>"
-    unfolding FactRing_def by simp
-  finally show "J <+>\<^bsub>R\<^esub> \<one>\<^bsub>R Quot I\<^esub> = \<one>\<^bsub>R Quot J\<^esub>" 
-    by simp
-qed
-
-lemma (in ring) quot_carr:
-  assumes "ideal I R"
-  assumes "y \<in> carrier (R Quot I)"
-  shows "y \<subseteq> carrier R"
-proof -
-  interpret ideal I R using assms(1) by simp
-  have "y \<in> a_rcosets I"
-    using assms(2) unfolding FactRing_def by simp
-  then obtain v where y_def: "y = I +> v" "v \<in> carrier R"
-    unfolding A_RCOSETS_def' by auto
-  have "I +> v \<subseteq> carrier R" 
-    using y_def(2) a_r_coset_subset_G a_subset by presburger
-  thus "y \<subseteq> carrier R" unfolding y_def by simp
-qed
-
-lemma (in ring) set_add_zero:
-  assumes "A \<subseteq> carrier R"
-  shows "{\<zero>} <+>\<^bsub>R\<^esub> A = A"
-proof -
-  have "{\<zero>} <+>\<^bsub>R\<^esub> A = (\<Union>x\<in>A. {\<zero> \<oplus> x})"
-    using assms unfolding set_add_def set_mult_def by simp
-  also have "... = (\<Union>x\<in>A. {x})"
-    using assms by (intro arg_cong[where f="Union"] image_cong, auto)
-  also have "... = A" by simp
-  finally show ?thesis by simp
-qed
 
 lemma (in finite_field) eval_on_root_is_iso:
   defines "p \<equiv> char R"
@@ -408,7 +253,7 @@ proof -
 
   hence "monic_irreducible_poly (R \<lparr> carrier := char_subring R \<rparr>) ?f'" 
     using char_iso p_def
-    by (intro monic_irreducible_poly_hom[OF assms(2) _ zf.domain_axioms]) auto
+    by (intro zf.monic_irreducible_poly_hom[OF assms(2) _ zf.domain_axioms]) auto
   moreover have "order R = card (char_subring R)^degree ?f'"
     using assms(3) unfolding char_def by simp
   ultimately obtain x where x_def: "eval ?f' x = \<zero>" "x \<in> carrier R"

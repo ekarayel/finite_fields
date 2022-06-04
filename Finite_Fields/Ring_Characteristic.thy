@@ -1,3 +1,5 @@
+section \<open>Characteristic of Rings\label{sec:ring_char}\<close>
+
 theory Ring_Characteristic
   imports 
     "SimpleFields"
@@ -698,6 +700,30 @@ proof -
   also have "... = char R" unfolding char_def by simp
   finally show ?thesis
     by simp
+qed
+
+
+definition char_iso :: "_ \<Rightarrow> int set \<Rightarrow> 'a" where "char_iso R x = the_elem (int_embed R ` x)"
+
+lemma (in ring) char_iso:
+  "char_iso R \<in> ring_iso (ZFact (int (char R))) (R\<lparr>carrier := char_subring R\<rparr>)"
+proof -
+  interpret h: ring_hom_ring "int_ring" "R" "int_embed R"
+    using int_embed_ring_hom by simp
+
+  have "a_kernel \<Z> R (int_embed R) = {x. int_embed R x = \<zero>}"
+    unfolding a_kernel_def kernel_def by simp
+  also have "... = {x. char R dvd x}"
+    using embed_char_eq_0_iff by simp
+  also have "... = PIdl\<^bsub>\<Z>\<^esub> (int (char R))" 
+    unfolding cgenideal_def by auto
+  also have "... = Idl\<^bsub>\<Z>\<^esub> {int (char R)}"
+    using int.cgenideal_eq_genideal by simp
+  finally have a:"a_kernel \<Z> R (int_embed R) = Idl\<^bsub>\<Z>\<^esub> {int (char R)}"
+    by simp
+  show  "?thesis"
+    unfolding char_iso_def ZFact_def a[symmetric]
+    by (intro h.FactRing_iso_set_aux)
 qed
 
 end
