@@ -1,6 +1,6 @@
 section \<open>Formal Derivatives\<close>
 
-theory Formal_Differentiation
+theory Formal_Polynomial_Derivatives
   imports "HOL-Algebra.Polynomial_Divisibility" "Ring_Characteristic"
 begin
 

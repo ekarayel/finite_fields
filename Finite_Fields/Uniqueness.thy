@@ -2,9 +2,7 @@ section \<open>Uniqueness\<close>
 
 theory Uniqueness
   imports
-    Lemma_2_3
     Card_Irreducible_Polynomials
-    SimpleFields
 begin
 
 lemma (in finite_field) eval_on_root_is_iso:

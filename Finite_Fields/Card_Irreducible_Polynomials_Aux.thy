@@ -1,9 +1,8 @@
-theory Lemma_2_3
+theory Card_Irreducible_Polynomials_Aux
 imports 
   "HOL-Algebra.Multiplicative_Group"
-  "Formal_Differentiation"
-  "Monic_Polynomial_Factorization"
-  "SimpleFields"
+  Formal_Polynomial_Derivatives
+  Monic_Polynomial_Factorization
 begin
 
 lemma (in domain)

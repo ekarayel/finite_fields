@@ -2,7 +2,7 @@ section \<open>Characteristic of Rings\label{sec:ring_char}\<close>
 
 theory Ring_Characteristic
   imports 
-    "SimpleFields"
+    "Finite_Field_Locale"
     "HOL-Algebra.IntRing" 
     "HOL-Algebra.Embedded_Algebras"
 begin

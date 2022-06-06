@@ -2,8 +2,8 @@ section \<open>Gauss Formula\label{sec:card_irred}\<close>
 
 theory Card_Irreducible_Polynomials
   imports 
-    "Dirichlet_Series.Moebius_Mu"
-    "Lemma_2_3"
+    Dirichlet_Series.Moebius_Mu
+    Card_Irreducible_Polynomials_Aux
 begin
 
 hide_const "Polynomial.order"

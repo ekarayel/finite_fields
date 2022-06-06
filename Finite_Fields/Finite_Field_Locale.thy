@@ -1,4 +1,4 @@
-theory SimpleFields
+theory Finite_Field_Locale
   imports 
     "Finite_Fields_Preliminary_Results"
     "HOL-Algebra.IntRing" 
