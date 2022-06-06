@@ -577,6 +577,29 @@ proof -
   thus ?thesis by (metis injI)
 qed
 
+lemma (in domain) embed_hom:
+  assumes "subring K R"
+  shows "ring_hom_ring (K[X]) (poly_ring R) id"
+proof (rule ring_hom_ringI)
+  show "ring (K[X])"
+    using univ_poly_is_ring[OF assms(1)] by simp
+  show "ring (poly_ring R)"
+    using univ_poly_is_ring[OF carrier_is_subring] by simp
+  have "K \<subseteq> carrier R" 
+    using subringE(1)[OF assms(1)] by simp
+  thus "\<And>x. x \<in> carrier (K [X]) \<Longrightarrow> id x \<in> carrier (poly_ring R)"
+    unfolding univ_poly_carrier[symmetric] polynomial_def by auto
+  show "id (x \<otimes>\<^bsub>K [X]\<^esub> y) = id x \<otimes>\<^bsub>poly_ring R\<^esub> id y" 
+    if "x \<in> carrier (K [X])" "y \<in> carrier (K [X])" for x y
+    unfolding univ_poly_mult by simp
+  show "id (x \<oplus>\<^bsub>K [X]\<^esub> y) = id x \<oplus>\<^bsub>poly_ring R\<^esub> id y"
+    if "x \<in> carrier (K [X])" "y \<in> carrier (K [X])" for x y
+    unfolding univ_poly_add by simp
+  show "id \<one>\<^bsub>K [X]\<^esub> = \<one>\<^bsub>poly_ring R\<^esub>"
+    unfolding univ_poly_one by simp
+qed
+
+
 text \<open>The following are versions of the properties of the degree's of polynomials, that abstract
 over the definition of the polynomial ring structure.
 
@@ -736,6 +759,80 @@ proof -
     unfolding univ_poly_add poly_add_coeff[OF a b] by simp
 qed
 
+lemma (in principal_domain) geom:
+  fixes q:: nat
+  assumes [simp]: "a \<in> carrier R"
+  shows "(a \<ominus> \<one>) \<otimes> (\<Oplus>i\<in>{0..<q}. a [^] i) = (a [^] q \<ominus> \<one>)"
+    (is "?lhs = ?rhs")
+proof -
+  have [simp]: "a [^] i \<in> carrier R" for i :: nat
+    by (intro nat_pow_closed assms)
+  have [simp]: "\<ominus> \<one> \<otimes> x = \<ominus> x" if "x \<in> carrier R" for x
+    using l_minus l_one one_closed that by presburger
+
+  let ?cterm = "(\<Oplus>i\<in>{1..<q}. a [^] i)"
+
+  have "?lhs = a \<otimes> (\<Oplus>i\<in>{0..<q}. a [^] i)  \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+    unfolding a_minus_def by (subst l_distr, simp_all add:Pi_def)
+  also have "... = (\<Oplus>i\<in>{0..<q}. a \<otimes> a [^] i) \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+    by (subst finsum_rdistr, simp_all add:Pi_def)
+  also have "... = (\<Oplus>i\<in>{0..<q}. a [^] (Suc i)) \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+    by (subst nat_pow_Suc, simp_all add:m_comm)
+  also have "... = (\<Oplus>i\<in>Suc ` {0..<q}. a [^] i) \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+    by (subst finsum_reindex, simp_all)
+  also have "... = (\<Oplus>i\<in>insert q {1..<q}. a [^] i) \<ominus> (\<Oplus>i\<in> insert 0 {1..<q}. a [^] i)"
+  proof (cases "q > 0")
+    case True
+    then show ?thesis by (intro arg_cong2[where f="\<lambda>x y. x \<ominus> y"] finsum_cong, auto) 
+  next
+    case False
+    then show ?thesis by (simp, algebra)
+  qed
+  also have "... = (a [^] q \<oplus> ?cterm) \<ominus> (\<one> \<oplus> ?cterm)"
+    by simp
+  also have "... = a [^] q \<oplus> ?cterm \<oplus> (\<ominus> \<one> \<oplus> \<ominus> ?cterm)"
+    unfolding a_minus_def by (subst minus_add, simp_all)
+  also have "... = a [^] q \<oplus> (?cterm \<oplus> (\<ominus> \<one> \<oplus> \<ominus> ?cterm))"
+    by (subst a_assoc, simp_all)
+  also have "... = a [^] q \<oplus> (?cterm \<oplus> (\<ominus> ?cterm \<oplus> \<ominus> \<one>))"
+    by (subst a_comm[where x="\<ominus> \<one>"], simp_all)
+  also have "... = a [^] q \<oplus> ((?cterm \<oplus> (\<ominus> ?cterm)) \<oplus> \<ominus> \<one>)"
+    by (subst a_assoc, simp_all)
+  also have "... = a [^] q \<oplus> (\<zero> \<oplus> \<ominus> \<one>)"
+    by (subst r_neg, simp_all)
+  also have "... = a [^] q \<ominus> \<one>" 
+    unfolding a_minus_def by simp
+  finally show ?thesis by simp
+qed
+
+lemma (in domain) rupture_eq_0_iff:
+  assumes "subfield K R" "p \<in> carrier (K[X])" "q \<in> carrier (K[X])"
+  shows "rupture_surj K p q = \<zero>\<^bsub>Rupt K p\<^esub> \<longleftrightarrow> p pdivides q" (is "?lhs \<longleftrightarrow> ?rhs")
+proof -
+  interpret h:ring_hom_ring "K[X]" "(Rupt K p)" "(rupture_surj K p)"
+    using assms subfieldE by (intro rupture_surj_hom) auto
+
+  have a: "q pmod p \<in> (\<lambda>q. q pmod p) ` carrier (K [X])" 
+    using assms(3) by simp
+  have "\<zero>\<^bsub>K[X]\<^esub> = \<zero>\<^bsub>K[X]\<^esub> pmod p" 
+    using assms(1,2) long_division_zero(2)
+    by (simp add:univ_poly_zero)
+  hence b: "\<zero>\<^bsub>K[X]\<^esub> \<in> (\<lambda>q. q pmod p) ` carrier (K[X])" 
+    by (simp add:image_iff) auto
+
+  have "?lhs \<longleftrightarrow> rupture_surj K p (q pmod p) = rupture_surj K p (\<zero>\<^bsub>K[X]\<^esub>)" 
+    apply (subst h.hom_zero)
+    apply (subst rupture_surj_composed_with_pmod[OF assms])
+    by simp
+  also have "... \<longleftrightarrow> q pmod p = \<zero>\<^bsub>K[X]\<^esub>"
+    using assms(3)
+    by (intro inj_on_eq_iff[OF rupture_surj_inj_on[OF assms(1,2)]] a b)
+  also have "... \<longleftrightarrow> ?rhs"
+    unfolding univ_poly_zero
+    by (intro pmod_zero_iff_pdivides[OF assms(1)] assms(2,3))
+  finally show "?thesis" by simp
+qed
+
 subsection \<open>Ring Isomorphisms\<close>
 
 lemma lift_iso_to_poly_ring:
@@ -862,6 +959,46 @@ proof -
   show ?thesis
     using ring_iso_memE(1)[OF poly_iso assms(1)] by simp
 qed
+
+lemma carrier_hom':
+  assumes "f \<in> carrier (poly_ring R)"
+  assumes "h \<in> ring_hom R S" "domain R" "domain S" "inj_on h (carrier R)"
+  shows "map h f \<in> carrier (poly_ring S)"
+proof -
+  let ?S = "S \<lparr> carrier := h ` carrier R \<rparr>"
+
+  interpret dr: domain "R" using assms(3) by blast
+  interpret ds: domain "S" using assms(4) by blast
+  interpret h1: ring_hom_ring R S h
+    using assms(2) ring_hom_ringI2 dr.ring_axioms ds.ring_axioms by blast 
+  have subr: "subring (h ` carrier R) S" 
+    using h1.img_is_subring[OF dr.carrier_is_subring] by blast
+  interpret h: ring_hom_ring "((h ` carrier R)[X]\<^bsub>S\<^esub>)" "poly_ring S" "id"
+    using ds.embed_hom[OF subr] by simp
+
+  let ?S = "S \<lparr> carrier := h ` carrier R \<rparr>"
+  have "h \<in> ring_hom R ?S"
+    using assms(2) unfolding ring_hom_def by simp
+  moreover have "bij_betw h (carrier R) (carrier ?S)"
+    using assms(5) bij_betw_def by auto
+  ultimately have h_iso: "h \<in> ring_iso R ?S"
+    unfolding ring_iso_def by simp
+
+
+  have dom_S: "domain ?S" 
+    using ds.subring_is_domain[OF subr] by simp
+
+  note poly_iso = lift_iso_to_poly_ring[OF h_iso assms(3) dom_S]
+  have "map h f \<in> carrier (poly_ring ?S)"
+    using ring_iso_memE(1)[OF poly_iso assms(1)] by simp
+  also have "carrier (poly_ring ?S) = carrier (univ_poly S (h ` carrier R))"
+    using ds.univ_poly_consistent[OF subr] by simp
+  also have "... \<subseteq> carrier (poly_ring S)"
+    using h.hom_closed by auto
+  finally show ?thesis by simp
+qed
+
+
 
 lemma divides_hom:
   assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R" "y \<in> carrier R"
@@ -1121,6 +1258,8 @@ proof -
   finally show ?thesis by simp
 qed
 
+subsection \<open>Divisibility\<close>
+
 lemma  (in field) f_comm_group_1:
   "x \<in> carrier R \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> y \<in> carrier R \<Longrightarrow> y \<noteq> \<zero> \<Longrightarrow> x \<otimes> y = \<zero> \<Longrightarrow> False" 
   using integral by auto
@@ -1197,6 +1336,27 @@ next
   assume "a divides c"
   thus "a divides (b \<oplus> c)"
     using assms by (intro div_sum) auto
+qed
+
+text \<open>Adapted from the proof of @{thm [source] domain.polynomial_rupture}\<close>
+
+lemma (in domain) rupture_surj_as_eval:
+  assumes "subring K R" and "p \<in> carrier (K[X])" "q \<in> carrier (K[X])"
+  shows "rupture_surj K p q = ring.eval (Rupt K p) (map ((rupture_surj K p) \<circ> poly_of_const) q) (rupture_surj K p X)"
+proof -
+  let ?surj = "rupture_surj K p"
+
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF assms(1)] .
+  interpret Hom: ring_hom_ring "K[X]" "Rupt K p" ?surj
+    using rupture_surj_hom(2)[OF assms(1,2)] .
+
+  have "(Hom.S.eval) (map (?surj \<circ> poly_of_const) q) (?surj X) = ?surj ((UP.eval) (map poly_of_const q) X)"
+    using Hom.eval_hom[OF UP.carrier_is_subring var_closed(1)[OF assms(1)]
+          map_norm_in_poly_ring_carrier[OF assms(1,3)]] by simp
+  also have " ... = ?surj q"
+    unfolding sym[OF eval_rewrite[OF assms(1,3)]] ..
+  finally show ?thesis by simp
 qed
 
 end

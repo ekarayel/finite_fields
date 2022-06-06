@@ -3,7 +3,7 @@ section \<open>Gauss Formula\label{sec:card_irred}\<close>
 theory Card_Irreducible_Polynomials
   imports 
     "Dirichlet_Series.Moebius_Mu"
-    "Theorem_2"
+    "Lemma_2_3"
 begin
 
 hide_const "Polynomial.order"

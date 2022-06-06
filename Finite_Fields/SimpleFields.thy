@@ -20,6 +20,57 @@ proof (rule ccontr)
   thus "False" by simp
 qed
 
+lemma (in finite_field) order_pow_eq_self:
+  assumes "x \<in> carrier R"
+  shows "x [^] (order R) = x"
+proof (cases "x = \<zero>")
+  case True
+  have "order R > 0"
+    using assms(1) order_gt_0_iff_finite finite_carrier by simp
+  then obtain n where n_def:"order R = Suc n" 
+    using lessE by blast
+  have "x [^] (order R) = \<zero>" 
+    unfolding n_def using True by (subst nat_pow_Suc, simp)
+  thus ?thesis using True by simp
+next
+  case False
+  have x_carr:"x \<in> carrier (mult_of R)"
+    using False assms by simp
+
+  have carr_non_empty: "card (carrier R) > 0" 
+    using order_gt_0_iff_finite finite_carrier unfolding order_def by simp
+  have "x [^] (order R) = x [^]\<^bsub>mult_of R\<^esub> (order R)"
+    by (simp add:nat_pow_mult_of)
+  also have "... = x [^]\<^bsub>mult_of R\<^esub> (order (mult_of R)+1)"
+    using carr_non_empty unfolding order_def
+    by (intro arg_cong[where f="\<lambda>t. x [^]\<^bsub>mult_of R\<^esub> t"]) (simp)
+  also have "... = x"
+    using x_carr
+    by (simp add:mult_of.pow_order_eq_1)
+  finally show "x [^] (order R) = x"
+    by simp
+qed
+
+lemma (in finite_field) order_pow_eq_self':
+  assumes "x \<in> carrier R"
+  shows "x [^] (order R ^ d) = x"
+proof (induction d)
+  case 0
+  then show ?case using assms by simp
+next
+  case (Suc d)
+  have "x [^] order R ^ (Suc d) = x [^] (order R ^ d * order R)"
+    by (simp add:mult.commute)
+  also have "... = (x [^] (order R ^ d)) [^] order R"
+    using assms by (simp add: nat_pow_pow)
+  also have "... = (x [^] (order R ^ d))"
+    using order_pow_eq_self assms by simp
+  also have "... = x"
+    using Suc by simp
+  finally show ?case by simp
+qed
+
+
 end
 
 lemma finite_fieldI:

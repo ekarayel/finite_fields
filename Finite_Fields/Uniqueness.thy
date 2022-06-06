@@ -2,7 +2,7 @@ section \<open>Uniqueness\<close>
 
 theory Uniqueness
   imports
-    Theorem_2
+    Lemma_2_3
     Card_Irreducible_Polynomials
     SimpleFields
 begin
@@ -129,28 +129,6 @@ proof -
   also have "... \<longleftrightarrow> f pdivides\<^bsub>?S\<^esub> g"
     unfolding pdivides_def by simp
   finally show ?thesis by simp
-qed
-
-lemma (in domain) embed_hom:
-  assumes "subring K R"
-  shows "ring_hom_ring (K[X]) (poly_ring R) id"
-proof (rule ring_hom_ringI)
-  show "ring (K[X])"
-    using univ_poly_is_ring[OF assms(1)] by simp
-  show "ring (poly_ring R)"
-    using univ_poly_is_ring[OF carrier_is_subring] by simp
-  have "K \<subseteq> carrier R" 
-    using subringE(1)[OF assms(1)] by simp
-  thus "\<And>x. x \<in> carrier (K [X]) \<Longrightarrow> id x \<in> carrier (poly_ring R)"
-    unfolding univ_poly_carrier[symmetric] polynomial_def by auto
-  show "id (x \<otimes>\<^bsub>K [X]\<^esub> y) = id x \<otimes>\<^bsub>poly_ring R\<^esub> id y" 
-    if "x \<in> carrier (K [X])" "y \<in> carrier (K [X])" for x y
-    unfolding univ_poly_mult by simp
-  show "id (x \<oplus>\<^bsub>K [X]\<^esub> y) = id x \<oplus>\<^bsub>poly_ring R\<^esub> id y"
-    if "x \<in> carrier (K [X])" "y \<in> carrier (K [X])" for x y
-    unfolding univ_poly_add by simp
-  show "id \<one>\<^bsub>K [X]\<^esub> = \<one>\<^bsub>poly_ring R\<^esub>"
-    unfolding univ_poly_one by simp
 qed
 
 lemma (in finite_field) find_root:

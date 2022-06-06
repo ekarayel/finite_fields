@@ -12,7 +12,6 @@ session Finite_Fields (AFP) = "HOL-Algebra" +
     Monic_Polynomial_Factorization
     Ring_Characteristic
     SimpleFields
-    Theorem_2
     Uniqueness
   document_files
     "root.tex"

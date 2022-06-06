@@ -639,21 +639,6 @@ proof -
   thus ?thesis using c by auto
 qed
 
-lemma (in finite_field) freshmans_dream_2:
-  assumes "finite (carrier R)"
-  assumes [simp]: "x \<in> carrier R" "y \<in> carrier R"
-  shows "(x \<oplus> y) [^] (order R^m) = x [^] (order R^m) \<oplus> y [^] (order R^m)" 
-proof -
-  obtain n :: nat where n_def: "order R = char R^n"
-    using finite_field_order assms by auto
-
-  have "(x \<oplus> y) [^] char R^(n*m) = x [^] char R^(n*m) \<oplus> y [^] char R^(n*m)" 
-    using freshmans_dream_ext assms(2,3) finite_carr_imp_char_ge_0[OF assms(1)]
-    by simp
-  thus ?thesis
-    by (simp add:n_def power_mult) 
-qed
-
 lemma (in ring) char_consistent:
   assumes "subring H R"
   shows "char (R \<lparr> carrier := H \<rparr>) = char R"

@@ -202,7 +202,7 @@ proof -
     also have "... = (\<Oplus> k \<in> {..i+1}. ?n (i+1) \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)))"
       by (intro finsum_rdistr, simp_all add:Pi_def) 
     also have "... = (\<Oplus> k \<in> {..i+1}. ?n k \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)) \<oplus>
-     ?n (i+1-k) \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)))" 
+      ?n (i+1-k) \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)))" 
       using int_embed_add[symmetric] 
       by (intro finsum_cong',simp_all add:l_distr[symmetric] of_nat_diff) 
     also have "... = (\<Oplus> k \<in> {..i+1}. ?n k \<otimes> coeff f k \<otimes> coeff g (i + 1 - k) \<oplus>
