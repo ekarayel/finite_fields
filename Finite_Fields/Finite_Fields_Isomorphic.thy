@@ -1,6 +1,6 @@
-section \<open>Uniqueness\<close>
+section \<open>Isomorphism between Finite Fields\label{sec:uniqueness}\<close>
 
-theory Uniqueness
+theory Finite_Fields_Isomorphic
   imports
     Card_Irreducible_Polynomials
 begin
@@ -229,7 +229,7 @@ proof -
 
   hence "monic_irreducible_poly (R \<lparr> carrier := char_subring R \<rparr>) ?f'" 
     using char_iso p_def
-    by (intro zf.monic_irreducible_poly_hom[OF assms(2) _ zf.domain_axioms]) auto
+    by (intro monic_irreducible_poly_hom[OF assms(2) _ zf.domain_axioms]) auto
   moreover have "order R = card (char_subring R)^degree ?f'"
     using assms(3) unfolding char_def by simp
   ultimately obtain x where x_def: "eval ?f' x = \<zero>" "x \<in> carrier R"
@@ -270,7 +270,7 @@ proof -
     unfolding ring_iso_def using a b by auto
 qed
 
-theorem 
+theorem uniqueness:
   assumes "finite_field F\<^sub>1"
   assumes "finite_field F\<^sub>2"
   assumes "order F\<^sub>1 = order F\<^sub>2"

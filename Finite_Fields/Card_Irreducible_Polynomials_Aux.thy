@@ -1,9 +1,15 @@
+section \<open>Counting Irreducible Polynomials \label{sec:card_irred}\<close>
+
+subsection \<open>The polynomial $X^n - X$\<close>
+
 theory Card_Irreducible_Polynomials_Aux
 imports 
   "HOL-Algebra.Multiplicative_Group"
   Formal_Polynomial_Derivatives
   Monic_Polynomial_Factorization
 begin
+
+hide_const Factorial_Ring.irreducible
 
 lemma (in domain)
   assumes "subfield K R"
@@ -86,16 +92,14 @@ definition gauss_poly where
 context field
 begin
 
-interpretation polynomial_notation "R"
-  by unfold_locales simp
-
-interpretation p:principal_domain "poly_ring R"
-  by (simp add: carrier_is_subfield univ_poly_is_principal)
+interpretation polynomial_ring "R" "carrier R"
+  unfolding polynomial_ring_def polynomial_ring_axioms_def
+  using field_axioms carrier_is_subfield by simp
 
 lemma lemma_2:
   fixes l m :: nat
   assumes "l > 0"
-  shows "(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides\<^bsub>R\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> m \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<longleftrightarrow> l dvd m"
+  shows "(X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides (X [^]\<^bsub>P\<^esub> m \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<longleftrightarrow> l dvd m"
     (is "?lhs \<longleftrightarrow> ?rhs")
 proof -
   define q where "q = m div l"
@@ -103,100 +107,98 @@ proof -
   have m_def: "m = q * l + r" and r_range: "r < l"
     using assms by (auto simp add:q_def r_def) 
 
-  have pow_sum_carr:"(\<Oplus>\<^bsub>P\<^esub>i\<in>{0..<q}. (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l)[^]\<^bsub>P\<^esub> i) \<in> carrier P" 
-    using var_pow_closed[OF carrier_is_subring]
+  have pow_sum_carr:"(\<Oplus>\<^bsub>P\<^esub>i\<in>{..<q}. (X [^]\<^bsub>P\<^esub> l)[^]\<^bsub>P\<^esub> i) \<in> carrier P" 
+    using var_pow_closed
     by (intro p.finsum_closed, simp)
 
-  have "(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = ((X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l)[^]\<^bsub>P\<^esub> q) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
-    using var_closed[OF carrier_is_subring]
+  have "(X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = ((X [^]\<^bsub>P\<^esub> l)[^]\<^bsub>P\<^esub> q) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
+    using var_closed
     by (subst p.nat_pow_pow, simp_all add:algebra_simps)
   also have "... =
-    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> (\<Oplus>\<^bsub>P\<^esub>i\<in>{0..<q}. (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l) [^]\<^bsub>P\<^esub> i)" 
-    using var_pow_closed[OF carrier_is_subring]
+    (X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> (\<Oplus>\<^bsub>P\<^esub>i\<in>{..<q}. (X [^]\<^bsub>P\<^esub> l) [^]\<^bsub>P\<^esub> i)" 
+    using var_pow_closed
     by (subst p.geom[symmetric], simp_all)
-  finally have pow_sum_fact:"(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) =
-    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> (\<Oplus>\<^bsub>P\<^esub>i\<in>{0..<q}. (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l) [^]\<^bsub>P\<^esub> i)" by simp
+  finally have pow_sum_fact:"(X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) =
+    (X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> (\<Oplus>\<^bsub>P\<^esub>i\<in>{..<q}. (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l) [^]\<^bsub>P\<^esub> i)" by simp
   
-  have "(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) divides\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+  have "(X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) divides\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
     by (rule dividesI[OF pow_sum_carr pow_sum_fact])
 
-  hence c:"(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) divides\<^bsub>P\<^esub> X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q * l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-    using var_pow_closed[OF carrier_is_subring]
+  hence c:"(X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) divides\<^bsub>P\<^esub> X [^]\<^bsub>P\<^esub> r \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q * l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    using var_pow_closed
     by (intro p.divides_prod_l, auto)
 
-  have "(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> m \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (r + q * l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
+  have "(X [^]\<^bsub>P\<^esub> m \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = X [^]\<^bsub>P\<^esub> (r + q * l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
     unfolding m_def using add.commute by metis
-  also have "... = (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l)) \<oplus>\<^bsub>P\<^esub> (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-    using var_closed[OF carrier_is_subring] 
+  also have "... = (X [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l)) \<oplus>\<^bsub>P\<^esub> (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    using var_closed 
     by (subst p.nat_pow_mult, auto simp add:a_minus_def)
-  also have "... = ((X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l) \<oplus>\<^bsub>P\<^esub> (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)) \<oplus>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r)) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
-    using var_pow_closed[OF carrier_is_subring]
+  also have "... = ((X [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l) \<oplus>\<^bsub>P\<^esub> (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)) \<oplus>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> r)) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
+    using var_pow_closed
     by algebra
-  also have "... = (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
+  also have "... = (X [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> r) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
     by algebra
-  also have "... = (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> ((X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-    unfolding a_minus_def using var_pow_closed[OF carrier_is_subring]
+  also have "... = (X [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> ((X [^]\<^bsub>P\<^esub> r) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    unfolding a_minus_def using var_pow_closed
     by (subst p.a_assoc, auto)
-  finally have a:"(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> m \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = 
-    (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+  finally have a:"(X [^]\<^bsub>P\<^esub> m \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = 
+    (X [^]\<^bsub>P\<^esub> r) \<otimes>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> (q*l) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<oplus>\<^bsub>P\<^esub> (X [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
     (is "_ = ?x")
     by simp
 
-  have xn_m_1_deg': "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = n" if n_gt_0: "n > 0" for n :: nat
+  have xn_m_1_deg': "degree (X [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = n" if n_gt_0: "n > 0" for n :: nat
   proof -
-    have "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<oplus>\<^bsub>P\<^esub> \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    have "degree (X [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = degree (X [^]\<^bsub>P\<^esub> n \<oplus>\<^bsub>P\<^esub> \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
       by (simp add:a_minus_def)
-    also have "... = max (degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n)) (degree (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>))"
-      using 
-        var_pow_closed[OF carrier_is_subring] var_pow_carr[OF carrier_is_subring] 
-        var_pow_degree[OF carrier_is_subring] univ_poly_a_inv_degree[OF carrier_is_subring] 
-        degree_one n_gt_0
-      by (subst degree_add_distinct[OF carrier_is_subring], auto)
+    also have "... = max (degree (X [^]\<^bsub>P\<^esub> n)) (degree (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>))"
+      using var_pow_closed var_pow_carr var_pow_degree 
+      using univ_poly_a_inv_degree degree_one n_gt_0
+      by (subst degree_add_distinct, auto)
     also have "... = n"
-      using var_pow_degree[OF carrier_is_subring] degree_one univ_poly_a_inv_degree[OF carrier_is_subring]
+      using var_pow_degree degree_one univ_poly_a_inv_degree
       by simp
     finally show ?thesis by simp
   qed
 
-  have xn_m_1_deg: "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = n" for n :: nat
+  have xn_m_1_deg: "degree (X [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = n" for n :: nat
   proof (cases "n > 0")
     case True
     then show ?thesis using xn_m_1_deg' by auto
   next
     case False
     hence "n = 0" by simp
-    hence "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = degree (\<zero>\<^bsub>P\<^esub>)"
+    hence "degree (X [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) = degree (\<zero>\<^bsub>P\<^esub>)"
       by (intro arg_cong[where f="degree"], simp)
     then show ?thesis using False by (simp add:univ_poly_zero)
   qed
 
-  have b: "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) > degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+  have b: "degree (X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) > degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
     using r_range unfolding xn_m_1_deg by simp
 
-  have xn_m_1_carr: "X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<in> carrier P" for n :: nat 
+  have xn_m_1_carr: "X [^]\<^bsub>P\<^esub> n \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<in> carrier P" for n :: nat 
     unfolding a_minus_def
-    by (intro p.a_closed var_pow_closed[OF carrier_is_subring], simp)
+    by (intro p.a_closed var_pow_closed, simp)
 
-  have "?lhs \<longleftrightarrow> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides\<^bsub>R\<^esub> ?x"
+  have "?lhs \<longleftrightarrow> (X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides ?x"
     by (subst a, simp) 
-  also have "... \<longleftrightarrow> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides\<^bsub>R\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-    unfolding pdivides_def by (intro p.div_sum_iff c var_pow_closed[OF carrier_is_subring]
-        xn_m_1_carr p.a_closed p.m_closed)
+  also have "... \<longleftrightarrow> (X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides (X [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+    unfolding pdivides_def 
+    by (intro p.div_sum_iff c var_pow_closed xn_m_1_carr p.a_closed p.m_closed)
   also have "... \<longleftrightarrow> r = 0"
   proof (cases "r = 0")
     case True
-    have "(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides\<^bsub>R\<^esub> \<zero>\<^bsub>P\<^esub>" 
+    have "(X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides \<zero>\<^bsub>P\<^esub>" 
       unfolding univ_poly_zero
-      by (intro pdivides_zero[OF carrier_is_subring] xn_m_1_carr) 
-    also have "... = (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+      by (intro pdivides_zero xn_m_1_carr) 
+    also have "... = (X [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
       by (simp add:a_minus_def True) algebra
     finally show ?thesis using True by simp
   next
     case False
-    hence "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) > 0" using xn_m_1_deg by simp 
-    hence "X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<noteq> []" by auto
-    hence "\<not>(X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides\<^bsub>R\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-      using pdivides_imp_degree_le[OF carrier_is_subring] b xn_m_1_carr
+    hence "degree (X [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) > 0" using xn_m_1_deg by simp 
+    hence "X [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<noteq> []" by auto
+    hence "\<not>(X [^]\<^bsub>P\<^esub> l \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides (X [^]\<^bsub>P\<^esub> r \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
+      using pdivides_imp_degree_le b xn_m_1_carr
       by (metis le_antisym less_or_eq_imp_le nat_neq_iff)
     thus ?thesis using False by simp
   qed
@@ -208,38 +210,38 @@ qed
 
 lemma gauss_poly_factor: 
   assumes "n > 0"
-  shows "gauss_poly R n = (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (n-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> X\<^bsub>R\<^esub>" (is "_ = ?rhs")
+  shows "gauss_poly R n = (X [^]\<^bsub>P\<^esub> (n-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> X" (is "_ = ?rhs")
 proof -
   have a:"1 + (n - 1) = n"
     using assms by simp
-  have "gauss_poly R n = X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (1+(n-1)) \<ominus>\<^bsub>P\<^esub> X\<^bsub>R\<^esub>"
+  have "gauss_poly R n = X [^]\<^bsub>P\<^esub> (1+(n-1)) \<ominus>\<^bsub>P\<^esub> X"
     unfolding gauss_poly_def by (subst a, simp)
-  also have "... = (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (n-1)) \<otimes>\<^bsub>P\<^esub> X\<^bsub>R\<^esub> \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<otimes>\<^bsub>P\<^esub> X\<^bsub>R\<^esub>"
-    using var_closed[OF carrier_is_subring] by simp 
+  also have "... = (X [^]\<^bsub>P\<^esub> (n-1)) \<otimes>\<^bsub>P\<^esub> X \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<otimes>\<^bsub>P\<^esub> X"
+    using var_closed by simp 
   also have "... = ?rhs"
-    unfolding a_minus_def using var_closed[OF carrier_is_subring] l_one
+    unfolding a_minus_def using var_closed l_one
     by (subst p.l_distr, auto, algebra)
   finally show ?thesis by simp
 qed
 
-lemma var_neq_zero: "X\<^bsub>R\<^esub> \<noteq> \<zero>\<^bsub>P\<^esub>"
+lemma var_neq_zero: "X \<noteq> \<zero>\<^bsub>P\<^esub>"
   by (simp add:var_def univ_poly_zero)
 
-lemma var_pow_eq_one_iff: "X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> k = \<one>\<^bsub>P\<^esub> \<longleftrightarrow> k = (0::nat)"
+lemma var_pow_eq_one_iff: "X [^]\<^bsub>P\<^esub> k = \<one>\<^bsub>P\<^esub> \<longleftrightarrow> k = (0::nat)"
 proof (cases "k=0")
   case True
-  then show ?thesis   using var_closed(1)[OF carrier_is_subring] by simp
+  then show ?thesis using var_closed(1) by simp
 next
   case False
   have "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> k) = k "
-    using var_pow_degree[OF carrier_is_subring] by simp
+    using var_pow_degree by simp
   also have "... \<noteq> degree (\<one>\<^bsub>P\<^esub>)" using False degree_one by simp
   finally have "degree (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> k) \<noteq> degree \<one>\<^bsub>P\<^esub>" by simp
   then show ?thesis by auto
 qed
 
 lemma gauss_poly_carr: "gauss_poly R n \<in> carrier P"
-  using var_closed(1)[OF carrier_is_subring]
+  using var_closed(1)
   unfolding gauss_poly_def by simp
 
 lemma gauss_poly_degree:
@@ -248,9 +250,9 @@ lemma gauss_poly_degree:
 proof -
   have "degree (gauss_poly R n) = max n 1"
     unfolding gauss_poly_def a_minus_def
-    using var_pow_carr[OF carrier_is_subring] var_carr[OF carrier_is_subring] degree_var
-    using var_pow_degree[OF carrier_is_subring] univ_poly_a_inv_degree[OF carrier_is_subring]
-    using assms by (subst degree_add_distinct[OF carrier_is_subring], auto)
+    using var_pow_carr var_carr degree_var
+    using var_pow_degree univ_poly_a_inv_degree
+    using assms by (subst degree_add_distinct, auto)
   also have "... = n" using assms by simp
   finally show ?thesis by simp
 qed
@@ -271,11 +273,11 @@ proof -
   have "monic_poly R (X [^]\<^bsub>P\<^esub> n)" 
     by (intro monic_poly_pow monic_poly_var) 
   moreover have "\<ominus>\<^bsub>P\<^esub> X \<in> carrier P" 
-    using var_closed[OF carrier_is_subring] by simp
+    using var_closed by simp
   moreover have "degree (\<ominus>\<^bsub>P\<^esub> X) < degree (X [^]\<^bsub>P\<^esub> n)" 
-    using assms univ_poly_a_inv_degree[OF carrier_is_subring] var_closed[OF carrier_is_subring]
+    using assms univ_poly_a_inv_degree var_closed
     using degree_var
-    unfolding var_pow_degree[OF carrier_is_subring] by (simp)
+    unfolding var_pow_degree by (simp)
   ultimately show ?thesis
     unfolding gauss_poly_def a_minus_def
     by (intro monic_poly_add_distinct, auto)
@@ -352,7 +354,7 @@ proof -
     (X [^]\<^bsub>P\<^esub> (a^m-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) \<otimes>\<^bsub>P\<^esub> X"
     using  gauss_poly_factor a1 b1 by simp
   also have "... \<longleftrightarrow> (X [^]\<^bsub>P\<^esub> (a^n-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>) pdivides (X [^]\<^bsub>P\<^esub> (a^m-1) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
-    using var_closed[OF carrier_is_subring] a b var_neq_zero
+    using var_closed a b var_neq_zero
     by (subst pdivides_mult_r, simp_all add:var_pow_eq_one_iff) 
   also have "... \<longleftrightarrow> a^n-1 dvd a^m-1"
     using b by (subst lemma_2, simp, simp) 
@@ -371,11 +373,9 @@ end
 context finite_field 
 begin
 
-interpretation polynomial_notation "R"
-  by unfold_locales simp
-
-interpretation p:principal_domain "poly_ring R"
-  by (simp add: carrier_is_subfield univ_poly_is_principal)
+interpretation polynomial_ring "R" "carrier R"
+  unfolding polynomial_ring_def polynomial_ring_axioms_def
+  using field_axioms carrier_is_subfield by simp
 
 lemma div_gauss_poly_iff:
   assumes "n > 0"
@@ -387,7 +387,7 @@ proof -
   have f_deg: "degree f > 0" 
     using assms(2) monic_poly_min_degree by fastforce
 
-  define K where "K = Rupt\<^bsub>R\<^esub> (R\<^sup>C) f"
+  define K where "K = Rupt\<^bsub>R\<^esub> (carrier R) f"
   have field_K: "field K"
     using assms(2) unfolding K_def monic_irreducible_poly_def monic_poly_def
     by (subst rupture_is_field_iff_pirreducible[OF carrier_is_subfield])  auto
@@ -472,15 +472,14 @@ proof -
   proof
     assume f:"f pdivides\<^bsub>R\<^esub> gauss_poly R (order R^n)"
     have "(\<phi> X) [^]\<^bsub>K\<^esub> (order R^n) \<ominus>\<^bsub>K\<^esub> (\<phi> X\<^bsub>R\<^esub>) = \<phi> (gauss_poly R (order R^n))"
-      unfolding gauss_poly_def a_minus_def using var_closed[OF carrier_is_subring]
+      unfolding gauss_poly_def a_minus_def using var_closed
       by (simp add: h.hom_nat_pow)
     also have "... = \<zero>\<^bsub>K\<^esub>" 
       unfolding K_def \<phi>_def using f_carr gauss_poly_carr f
-      by (subst rupture_eq_0_iff[OF carrier_is_subfield], simp_all) 
+      by (subst rupture_eq_0_iff, simp_all) 
     finally have "(\<phi> X\<^bsub>R\<^esub>) [^]\<^bsub>K\<^esub> (order R^n) \<ominus>\<^bsub>K\<^esub> (\<phi> X\<^bsub>R\<^esub>) = \<zero>\<^bsub>K\<^esub>" by simp
     hence g:"(\<phi> X) [^]\<^bsub>K\<^esub> (order R^n) = (\<phi> X)"
-      using var_closed[OF carrier_is_subring] 
-      by simp
+      using var_closed by simp
 
     have roots_g2: "pmult\<^bsub>K\<^esub> d ?g2 \<ge> 1" if z1: "degree d = 1" "monic_irreducible_poly K d" for d
     proof -
@@ -510,7 +509,7 @@ proof -
         unfolding \<phi>_def K_def
         by (subst rupture_surj_as_eval[OF carrier_is_subring f_carr x_def(1)], simp)
       also have "... = f.eval (map (\<lambda>x. \<phi> (poly_of_const x) [^]\<^bsub>K\<^esub> order R ^ n) x) (\<phi> X)"
-        using a h.hom_closed var_closed(1)[OF carrier_is_subring]
+        using a h.hom_closed var_closed(1)
         by (subst q.ring.eval_hom[OF f.carrier_is_subring], simp_all add:comp_def g)
       also have "... = f.eval (map (\<lambda>x. \<phi> (poly_of_const x)) x) (\<phi> X)"
         using k_cycle x_coeff_carr
@@ -597,17 +596,17 @@ proof -
       by (subst (asm) f.div_gauss_poly_iff_1[OF assms(1) f_deg finite_field_min_order], simp) 
   next
     have d:"\<phi> X\<^bsub>R\<^esub> \<in> carrier K"
-      by (intro h.hom_closed var_closed[OF carrier_is_subring])
+      by (intro h.hom_closed var_closed)
 
     have "\<phi> (gauss_poly R (order R^degree f)) = (\<phi> X\<^bsub>R\<^esub>) [^]\<^bsub>K\<^esub> (order R^degree f) \<ominus>\<^bsub>K\<^esub> (\<phi> X\<^bsub>R\<^esub>)"
-      unfolding gauss_poly_def a_minus_def using var_closed[OF carrier_is_subring]
+      unfolding gauss_poly_def a_minus_def using var_closed
       by (simp add: h.hom_nat_pow)
     also have "... = \<zero>\<^bsub>K\<^esub>"
       using c d by simp
     finally have "\<phi> (gauss_poly R (order R^degree f)) = \<zero>\<^bsub>K\<^esub>" by simp
     hence "f pdivides\<^bsub>R\<^esub> gauss_poly R (order R^degree f)"
       unfolding K_def \<phi>_def using f_carr gauss_poly_carr
-      by (subst (asm) rupture_eq_0_iff[OF carrier_is_subfield], simp_all) 
+      by (subst (asm) rupture_eq_0_iff, simp_all) 
     moreover assume "degree f dvd n"
     
     hence "gauss_poly R (order R^degree f) pdivides\<^bsub>R\<^esub> (gauss_poly R (order R^n))"
@@ -623,16 +622,16 @@ proof -
   have "degree q \<le> 1" if 
     a:"q \<in> carrier P" "pirreducible (carrier R) q" "q pdivides gauss_poly R (order R)" for q
   proof -
-    have q_carr: "q \<in> carrier M" 
+    have q_carr: "q \<in> carrier (mult_of P)" 
       using a unfolding ring_irreducible_def by simp
-    moreover have "Divisibility.irreducible M q" 
+    moreover have "irreducible (mult_of P) q" 
       using a unfolding ring_irreducible_def
       by (intro p.irreducible_imp_irreducible_mult a, simp_all)
-    ultimately obtain p where p_def: "monic_irreducible_poly R p" "q \<sim>\<^bsub>M\<^esub> p"
+    ultimately obtain p where p_def: "monic_irreducible_poly R p" "q \<sim>\<^bsub>mult_of P\<^esub> p"
       using monic_poly_span by auto
     have p_carr: "p \<in> carrier P" "p \<noteq> []" 
       using p_def(1) unfolding monic_irreducible_poly_def monic_poly_def by auto
-    moreover have "p divides\<^bsub>M\<^esub> q"
+    moreover have "p divides\<^bsub>mult_of P\<^esub> q"
       using associatedE[OF p_def(2)] by auto
     hence "p pdivides q"
       unfolding pdivides_def using divides_mult_imp_divides by simp
@@ -643,13 +642,13 @@ proof -
     hence "degree p dvd 1"
       using  div_gauss_poly_iff[where n="1"] p_def(1) by simp
     hence "degree p = 1" by simp
-    moreover have "q divides\<^bsub>M\<^esub> p"
+    moreover have "q divides\<^bsub>mult_of P\<^esub> p"
       using associatedE[OF p_def(2)] by auto
     hence "q pdivides p"
       unfolding pdivides_def using divides_mult_imp_divides by simp
     hence "degree q \<le> degree p"
       using a(1) p_carr
-      by (intro pdivides_imp_degree_le[OF carrier_is_subring]) auto
+      by (intro pdivides_imp_degree_le) auto
     ultimately show ?thesis by simp
   qed
 
@@ -702,14 +701,14 @@ proof (cases "degree f dvd n")
     then obtain h where h_def: "h \<in> carrier (mult_of P)" "?g = f [^]\<^bsub>P\<^esub> (2::nat) \<otimes>\<^bsub>P\<^esub> h"
       using dividesD by auto
     have "\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> = int_embed P (order R ^ n) \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (order R ^ n-1)) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
-      using var_closed[OF carrier_is_subring]
+      using var_closed
       apply (subst int_embed_consistent_with_poly_of_const[OF carrier_is_subring])
       by(subst iffD2[OF embed_char_eq_0_iff char_dvd_order], simp add:a_minus_def)
     also have "... = pderiv\<^bsub>R\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> order R ^ n) \<ominus>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> X\<^bsub>R\<^esub>"
       using pderiv_var
       by (subst pderiv_var_pow[OF o21 carrier_is_subring], simp)
     also have "... = pderiv\<^bsub>R\<^esub> ?g" 
-      unfolding gauss_poly_def a_minus_def using var_closed[OF carrier_is_subring]
+      unfolding gauss_poly_def a_minus_def using var_closed
       by (subst pderiv_add[OF carrier_is_subring], simp_all add:pderiv_inv[OF carrier_is_subring])
     also have "... = pderiv\<^bsub>R\<^esub> (f [^]\<^bsub>P\<^esub> (2::nat) \<otimes>\<^bsub>P\<^esub> h)"
       using h_def(2) by simp
@@ -737,14 +736,14 @@ proof (cases "degree f dvd n")
     moreover have "\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<noteq> \<zero>\<^bsub>P\<^esub>" by simp
     ultimately have  "degree f \<le> degree (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
       using f_carr 
-      by (intro pdivides_imp_degree_le[OF carrier_is_subring], simp_all add:univ_poly_zero)
+      by (intro pdivides_imp_degree_le, simp_all add:univ_poly_zero)
     also have "... = 0"
-      by (subst univ_poly_a_inv_degree[OF carrier_is_subring], simp)
+      by (subst univ_poly_a_inv_degree, simp)
        (simp add:univ_poly_one)
     finally have "degree f = 0" by simp
        
     then show "False" 
-      using pirreducible_degree[OF carrier_is_subfield] assms(2)
+      using pirreducible_degree assms(2)
       unfolding monic_irreducible_poly_def monic_poly_def 
       by fastforce
   qed
@@ -815,6 +814,5 @@ proof -
 qed
 
 end
-
 
 end

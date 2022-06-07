@@ -1,4 +1,4 @@
-section \<open>Formal Derivatives\<close>
+section \<open>Formal Derivatives\label{sec:pderiv}\<close>
 
 theory Formal_Polynomial_Derivatives
   imports "HOL-Algebra.Polynomial_Divisibility" "Ring_Characteristic"

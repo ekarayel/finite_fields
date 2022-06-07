@@ -1,4 +1,4 @@
-section \<open>Gauss Formula\label{sec:card_irred}\<close>
+subsection \<open>Gauss Formula\label{sec:card_irred}\<close>
 
 theory Card_Irreducible_Polynomials
   imports 

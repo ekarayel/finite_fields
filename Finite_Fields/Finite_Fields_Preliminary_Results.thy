@@ -1,10 +1,37 @@
 section \<open>Introduction\<close>
 
-text \<open>The classification consists of three theorems:
+text \<open>The following section starts with preliminary results. Section~\ref{sec:ring_char} introduces
+the characteristic of rings with the Frobenius endomorphism. Whenever it makes sense,
+the definitions and facts do not assume the finiteness of the fields or rings. For example the
+characteristic is defined over arbitrary rings (and also fields). 
+
+While formal derivatives do exist for type-class based structures in
+\verb|HOL-Computational_Algebra|, as far as I can tell, they do not exist for the structure based
+polynomials in \verb|HOL-Algebra|. These are introduced in Section~\ref{sec:pderiv}.
+
+A cornerstone of the proof is the derivation of Gauss' formula for the number of monic irreducible
+polynomials over a finite field $R$ in Section~\ref{sec:card_irred}. The proof follows the
+derivation by Ireland and Rosen~\cite[\textsection 7]{ireland1982} closely, with the caveat that it
+does not assume that $R$ is a simple prime field, but that it is just a finite field.
+This works by adjusting a proof step with the information that order of finite fields must be of the
+form $p^n$, where $p$ is the characteristic of the field, derived in Section~\ref{sec:ring_char}.
+
+With Gauss' formula it is possible to show the existence of the finite fields of order $p^n$ 
+where $p$ is a prime and $n > 0$. During the proof the fact that the polynomial $X^n - X$ splits
+in a field of order $n$ is also derived, which is necessary for the uniqueness result as well.
+
+The uniqueness proof is inspired by the derivation of the same result in
+Lidl and Niederreiter~\cite{lidl1986}, but because of the already derived existence proof for 
+irreducible polynomials, it was possible to reduce its complexity.
+
+The classification consists of three theorems:
 \begin{itemize}
-\item \emph{Existence}: For each prime power $p^n$ there exists a finite field of that size. This is shown at the conclusion of Section~\ref{sec:card_irred}.
-\item \emph{Uniqueness}: Any two finite fields of the same size are isomorphic. This is shown at the conclusion of Section~\ref{sec:uniq}.
-\item \emph{Completeness}: A finite fields size must be a prime power. This is shown in Section~\ref{sec:ring_char}.
+\item \emph{Existence}: For each prime power $p^n$ there exists a finite field of that size. 
+  This is shown at the conclusion of Section~\ref{sec:card_irred}.
+\item \emph{Uniqueness}: Any two finite fields of the same size are isomorphic. 
+  This is shown at the conclusion of Section~\ref{sec:uniqueness}.
+\item \emph{Completeness}: Any finite fields' size must be a prime power. 
+  This is shown at the conclusion of Section~\ref{sec:ring_char}.
 \end{itemize}
 \<close>
 
@@ -17,10 +44,7 @@ begin
 subsection \<open>Summation in the discrete topology\<close>
 
 text \<open>The following lemmas transfer the corresponding result from the summation over finite sets
-to summation over functions which vanish outside of a finite set. The reason the latter concept
-of summation is useful in this entry, stems from the fact that elements of a factorial monoid
-can be represented as products over a possibly infinite set of irreducible factors, where 
-only finitely many occur with a non-zero power.\<close>
+to summation over functions which vanish outside of a finite set.\<close>
 
 lemma sum'_subtractf_nat:
   fixes f :: "'a \<Rightarrow> nat"
@@ -47,7 +71,8 @@ proof -
   also have "... = sum' f ?B - sum' g ?B"
     by (intro arg_cong2[where f="(-)"] sum.eq_sum[symmetric] a)
   also have "... = ?rhs"
-    by (intro arg_cong2[where f="(-)"] sum.mono_neutral_cong_left', simp_all)
+    by (intro arg_cong2[where f="(-)"] sum.mono_neutral_cong_left')
+      simp_all
   finally show ?thesis
     by simp
 qed
@@ -99,471 +124,6 @@ proof -
     using assms(2) diff_is_0_eq' diffs0_imp_equal by blast
 qed
 
-subsection \<open>Factorization\<close>
-
-notation carrier ("(_\<^sup>C)" [90] 90)
-
-text \<open>This section contains additional results building on top of the development in
-@{theory "HOL-Algebra.Divisibility"}.\<close>
-
-definition factor_mset where "factor_mset G x = 
-  (THE f. (\<exists> as. f = fmset G as \<and> wfactors G as x \<and> set as \<subseteq> carrier G))"
-
-text \<open>In @{theory "HOL-Algebra.Divisibility"} it is already verified that the multiset representing
-the factorization of an element of a factorial monoid into irreducible factors is well-defined.
-With these results it is then possible to define @{term "factor_mset"} and show its properties,
-without referring to a factorization in list form first.\<close>
-
-definition multiplicity where
-  "multiplicity G d g = Max {(n::nat). (d [^]\<^bsub>G\<^esub> n) divides\<^bsub>G\<^esub> g}"
-
-definition canonical_irreducibles where 
-  "canonical_irreducibles G A = (
-    A \<subseteq> {a. a \<in> carrier G \<and> irreducible G a} \<and>
-    (\<forall>x y. x \<in> A \<longrightarrow> y \<in> A \<longrightarrow> x \<sim>\<^bsub>G\<^esub> y \<longrightarrow> x = y) \<and>
-    (\<forall>x \<in> carrier G. irreducible G x \<longrightarrow> (\<exists>y \<in> A. x \<sim>\<^bsub>G\<^esub> y)))"
-
-text \<open>A set of irreducible elements that contains exactly one element from each equivalence class
-of an irreducible element formed by association, is called a set of 
-@{term "canonical_irreducibles"}. An example is the set of monic irreducible polynomials as
-representatives of all irreducible polynomials.\<close>
-
-context factorial_monoid
-begin
-
-lemma assoc_as_fmset_eq:
-  assumes "wfactors G as a"
-    and "wfactors G bs b"
-    and "a \<in> carrier G"
-    and "b \<in> carrier G"
-    and "set as \<subseteq> carrier G"
-    and "set bs \<subseteq> carrier G"
-  shows "a \<sim> b \<longleftrightarrow> (fmset G as = fmset G bs)"
-proof -
-  have "a \<sim> b \<longleftrightarrow> (a divides b \<and> b divides a)"
-    by (simp add:associated_def)
-  also have "... \<longleftrightarrow> (fmset G as \<subseteq># fmset G bs \<and> fmset G bs \<subseteq># fmset G as)"
-    using divides_as_fmsubset assms by blast
-  also have "... \<longleftrightarrow> (fmset G as = fmset G bs)" by auto
-  finally show ?thesis by simp
-qed
-
-lemma factor_mset_aux_1:
-  assumes "a \<in> carrier G" "set as \<subseteq> carrier G" "wfactors G as a"
-  shows "factor_mset G a = fmset G as"
-proof -
-  define H where "H = {as. wfactors G as a \<and> set as \<subseteq> carrier G}"
-  have b:"as \<in> H"
-    using H_def assms by simp
-
-  have c: "x \<in> H \<Longrightarrow> y \<in> H  \<Longrightarrow> fmset G x = fmset G y" for x y
-    unfolding H_def using assoc_as_fmset_eq associated_refl assms by blast 
-
-  have "factor_mset G a = (THE f. \<exists>as \<in> H. f= fmset G as)"
-    by (simp add:factor_mset_def H_def, metis) 
-
-  also have "... = fmset G as"
-    using b 
-    apply (intro the1_equality) apply auto
-    using c by blast
-  finally have "factor_mset G a = fmset G as" by simp
-
-  thus ?thesis
-    using b unfolding H_def by auto
-qed
-
-lemma factor_mset_aux:
-  assumes "a \<in> carrier G"
-  shows "\<exists>as. factor_mset G a = fmset G as \<and> wfactors G as a \<and> 
-    set as \<subseteq> carrier G"
-proof -
-  obtain as where as_def: "wfactors G as a" "set as \<subseteq> carrier G"
-    using wfactors_exist assms by blast
-  thus ?thesis using factor_mset_aux_1 assms by blast
-qed
-
-lemma factor_mset_set:
-  assumes "a \<in> carrier G"
-  assumes "x \<in># factor_mset G a" 
-  obtains y where "y \<in> carrier G" "irreducible G y" "assocs G y = x" 
-proof -
-  obtain as where as_def: "factor_mset G a = fmset G as \<and> wfactors G as a \<and> set as \<subseteq> carrier G"
-    using factor_mset_aux assms by blast
-  hence "x \<in># fmset G as"
-    using assms by simp
-  hence "x \<in> assocs G ` set as"
-    using assms as_def by (simp add:fmset_def)
-  hence "\<exists>y. y \<in> set as \<and> x = assocs G y"
-    by auto
-  moreover have "y \<in> set as \<Longrightarrow> y \<in> carrier G \<and> irreducible G y" for y
-    using as_def wfactors_def by (simp add: wfactors_def) auto
-  ultimately show ?thesis
-    using that by blast
-qed
-
-lemma factor_mset_mult:
-  assumes "a \<in> carrier G" "b \<in> carrier G"
-  shows "factor_mset G (a \<otimes> b) = factor_mset G a + factor_mset G b"
-proof -
-  obtain as where as_def: "factor_mset G a = fmset G as \<and> wfactors G as a \<and> set as \<subseteq> carrier G"
-    using factor_mset_aux assms by blast
-  obtain bs where bs_def: "factor_mset G b = fmset G bs \<and> wfactors G bs b \<and> set bs \<subseteq> carrier G"
-    using factor_mset_aux assms(2) by blast
-  have "a \<otimes> b \<in> carrier G" using assms by auto
-  then obtain cs where cs_def:
-    "factor_mset G (a \<otimes> b) = fmset G cs \<and> wfactors G cs (a \<otimes> b) \<and> set cs \<subseteq> carrier G"
-    using factor_mset_aux assms  by blast
-  have "fmset G cs = fmset G as + fmset G bs"
-    using as_def bs_def cs_def assms 
-    by (intro  mult_wfactors_fmset[where a="a" and b="b"]) auto
-  thus ?thesis
-    using as_def bs_def cs_def by auto
-qed
-
-lemma factor_mset_unit: "factor_mset G \<one> = {#}"
-proof -
-  have "factor_mset G \<one> = factor_mset G (\<one> \<otimes> \<one>)"
-    by simp
-  also have "... = factor_mset G \<one> + factor_mset G \<one>"
-    by (intro factor_mset_mult, auto)
-  finally show "factor_mset G \<one> = {#}"
-    by simp
-qed
-
-lemma factor_mset_irred: 
-  assumes "x \<in> carrier G" "irreducible G x"
-  shows "factor_mset G x = image_mset (assocs G) {#x#}"
-proof -
-  have "wfactors G [x] x"
-    using assms by (simp add:wfactors_def)
-  hence "factor_mset G x = fmset G [x]"
-    using factor_mset_aux_1 assms by simp
-  also have "... = image_mset (assocs G) {#x#}"
-    by (simp add:fmset_def)
-  finally show ?thesis by simp
-qed
-
-lemma factor_mset_divides:
-  assumes "a \<in> carrier G" "b \<in> carrier G"
-  shows "a divides b \<longleftrightarrow> factor_mset G a \<subseteq># factor_mset G b"
-proof -
-  obtain as where as_def: "factor_mset G a = fmset G as \<and> wfactors G as a \<and> set as \<subseteq> carrier G"
-    using factor_mset_aux assms by blast
-  obtain bs where bs_def: "factor_mset G b = fmset G bs \<and> wfactors G bs b \<and> set bs \<subseteq> carrier G"
-    using factor_mset_aux assms(2) by blast
-  hence "a divides b \<longleftrightarrow> fmset G as \<subseteq># fmset G bs"
-    using as_def bs_def assms
-    by (intro divides_as_fmsubset) auto
-  also have "... \<longleftrightarrow> factor_mset G a \<subseteq># factor_mset G b"
-    using as_def bs_def by simp
-  finally show ?thesis by simp
-qed
-
-lemma factor_mset_sim:
-  assumes "a \<in> carrier G" "b \<in> carrier G"
-  shows "a \<sim> b \<longleftrightarrow> factor_mset G a = factor_mset G b"
-  using factor_mset_divides assms
-  by (simp add:associated_def) auto
-
-lemma factor_mset_prod:
-  assumes "finite A"
-  assumes "f ` A \<subseteq> carrier G" 
-  shows "factor_mset G (\<Otimes>a \<in> A. f a) = (\<Sum>a \<in> A. factor_mset G (f a))"
-  using assms
-proof (induction A rule:finite_induct)
-  case empty
-  then show ?case by (simp add:factor_mset_unit)
-next
-  case (insert x F)
-  have "factor_mset G (finprod G f (insert x F)) = factor_mset G (f x \<otimes> finprod G f F)"
-    using insert by (subst finprod_insert) auto
-  also have "... = factor_mset G (f x) + factor_mset G (finprod G f F)"
-    using insert by (intro factor_mset_mult finprod_closed) auto
-  also have "... = factor_mset G (f x) + (\<Sum>a \<in> F. factor_mset G (f a))"
-    using insert by simp
-  also have "... = (\<Sum>a\<in>insert x F. factor_mset G (f a))"
-    using insert by simp
-  finally show ?case by simp
-qed
-
-lemma factor_mset_pow:
-  assumes "a \<in> carrier G"
-  shows "factor_mset G (a [^] n) = repeat_mset n (factor_mset G a)"
-proof (induction n)
-  case 0
-  then show ?case by (simp add:factor_mset_unit)
-next
-  case (Suc n)
-  have "factor_mset G (a [^] Suc n) = factor_mset G (a [^] n \<otimes> a)"
-    by simp
-  also have "... = factor_mset G (a [^] n) + factor_mset G a"
-    using assms by (intro factor_mset_mult) auto
-  also have "... = repeat_mset n (factor_mset G a) + factor_mset G a"
-    using Suc by simp
-  also have "... = repeat_mset (Suc n) (factor_mset G a)"
-    by simp
-  finally show ?case by simp
-qed
-
-lemma image_mset_sum:
-  assumes "finite F"
-  shows "image_mset h (\<Sum>x \<in> F. f x) = (\<Sum>x \<in> F. image_mset h (f x))"
-  using assms
-  by (induction F rule:finite_induct, simp, simp)
-
-lemma decomp_mset: "(\<Sum>x\<in>set_mset R. replicate_mset (count R x) x) = R"
-  by (rule multiset_eqI, simp add:count_sum count_eq_zero_iff)
-
-lemma factor_mset_count:
-  assumes "a \<in> carrier G" "d \<in> carrier G" "irreducible G d"
-  shows "count (factor_mset G a) (assocs G d) = multiplicity G d a"
-proof -
-  have a:"count (factor_mset G a) (assocs G d) \<ge> m \<longleftrightarrow> d [^] m divides a"
-    (is "?lhs \<longleftrightarrow> ?rhs") for m
-  proof -
-    have "?lhs \<longleftrightarrow> replicate_mset m (assocs G d) \<subseteq># factor_mset G a"
-      by (simp add:count_le_replicate_mset_subset_eq)
-    also have "... \<longleftrightarrow> factor_mset G (d [^] m) \<subseteq># factor_mset G a"
-      using assms(2,3) by (simp add:factor_mset_pow factor_mset_irred)
-    also have "... \<longleftrightarrow> ?rhs"
-      using assms(1,2) by (subst factor_mset_divides) auto
-    finally show ?thesis by simp
-  qed
-
-  define M where "M = {(m::nat). d [^] m divides a}"
-
-  have M_alt: "M = {m. m \<le> count (factor_mset G a) (assocs G d)}"
-    using a by (simp add:M_def)
-
-  hence "Max M = count (factor_mset G a) (assocs G d)"
-    by (intro Max_eqI, auto)
-  thus ?thesis
-    unfolding multiplicity_def M_def by auto
-qed
-
-lemma multiplicity_ge_iff:
-  assumes "d \<in> carrier G" "irreducible G d" "a \<in> carrier G"
-  shows "multiplicity G d a \<ge> k \<longleftrightarrow> d [^]\<^bsub>G\<^esub> k divides\<^bsub>G\<^esub> a" (is "?lhs \<longleftrightarrow> ?rhs")
-proof -
-  have "?lhs \<longleftrightarrow> count (factor_mset G a) (assocs G d) \<ge> k"
-    using factor_mset_count[OF assms(3,1,2)] by simp
-  also have "... \<longleftrightarrow> replicate_mset k (assocs G d) \<subseteq># factor_mset G a"
-    by (subst count_le_replicate_mset_subset_eq, simp) 
-  also have "... \<longleftrightarrow> repeat_mset k (factor_mset G d) \<subseteq># factor_mset G a" 
-    by (subst factor_mset_irred[OF assms(1,2)], simp)
-  also have "... \<longleftrightarrow> factor_mset G (d [^]\<^bsub>G\<^esub> k) \<subseteq># factor_mset G a" 
-    by (subst factor_mset_pow[OF assms(1)], simp)
-  also have "... \<longleftrightarrow> (d [^] k) divides\<^bsub>G\<^esub> a"
-    using assms(1) factor_mset_divides[OF _ assms(3)] by simp
-  finally show ?thesis by simp
-qed
-
-lemma multiplicity_gt_0_iff:
-  assumes "d \<in> carrier G" "irreducible G d" "a \<in> carrier G"
-  shows "multiplicity G d a > 0 \<longleftrightarrow> d divides\<^bsub>G\<^esub> a"
-  using multiplicity_ge_iff[OF assms(1,2,3), where k="1"] assms
-  by auto
-
-lemma factor_mset_count_2:
-  assumes "a \<in> carrier G" 
-  assumes "\<And>z. z \<in> carrier G \<Longrightarrow> irreducible G z \<Longrightarrow> y \<noteq> assocs G z"
-  shows "count (factor_mset G a) y = 0"
-  using factor_mset_set [OF assms(1)] assms(2) by (metis count_inI)
-
-lemma factor_mset_choose:
-  assumes "a \<in> carrier G" "set_mset R \<subseteq> carrier G"
-  assumes "image_mset (assocs G) R = factor_mset G a" 
-  shows "a \<sim> (\<Otimes>x\<in>set_mset R. x [^] count R x)" (is "a \<sim> ?rhs")
-proof -
-  have b:"irreducible G x" if a:"x \<in># R" for x
-  proof -
-    have x_carr: "x \<in> carrier G" 
-      using a assms(2) by auto
-    have "assocs G x \<in> assocs G ` set_mset R"
-      using a by simp
-    hence "assocs G x \<in># factor_mset G a"
-      using assms(3) a in_image_mset by metis
-    then obtain z where z_def: "z \<in> carrier G" "irreducible G z" "assocs G x = assocs G z"
-      using factor_mset_set assms(1) by metis
-    have "z \<sim> x" using z_def(1,3) assocs_eqD x_carr by simp 
-    thus ?thesis using z_def(1,2) x_carr irreducible_cong by simp
-  qed
-
-  have "factor_mset G ?rhs = (\<Sum>x\<in>set_mset R. factor_mset G (x [^] count R x))"
-    using assms(2) by (subst factor_mset_prod, auto) 
-  also have "... = (\<Sum>x\<in>set_mset R. repeat_mset (count R x) (factor_mset G x))"
-    using assms(2) by (intro sum.cong, auto simp add:factor_mset_pow)
-  also have "... = (\<Sum>x\<in>set_mset R. repeat_mset (count R x) (image_mset (assocs G) {#x#}))"
-    using assms(2) b by (intro sum.cong, auto simp add:factor_mset_irred)
-  also have "... = (\<Sum>x\<in>set_mset R. image_mset (assocs G) (replicate_mset (count R x) x))"
-    by simp
-  also have "... = image_mset (assocs G) (\<Sum>x\<in>set_mset R. (replicate_mset (count R x) x))"
-    by (simp add: image_mset_sum)
-  also have "... = image_mset (assocs G) R"
-    by (simp add:decomp_mset)
-  also have "... = factor_mset G a"
-    using assms by simp
-  finally have "factor_mset G ?rhs = factor_mset G a" by simp
-  moreover have "(\<Otimes>x\<in>set_mset R. x [^] count R x) \<in> carrier G"
-    using assms(2) by (intro finprod_closed, auto)
-  ultimately show ?thesis 
-    using assms(1) by (subst factor_mset_sim) auto
-qed
-
-lemma divides_iff_mult_mono:
-  assumes "a \<in> carrier G" "b \<in> carrier G" 
-  assumes "canonical_irreducibles G R"
-  assumes "\<And>d. d \<in> R \<Longrightarrow> multiplicity G d a \<le> multiplicity G d b"
-  shows "a divides b"
-proof -
-  have "count (factor_mset G a) d \<le> count (factor_mset G b) d" for d
-  proof (cases "\<exists>y. irreducible G y \<and> y \<in> carrier G \<and> d = assocs G y")
-    case True
-    then obtain y where y_def: "irreducible G y" "y \<in> carrier G" "d = assocs G y" by blast
-    then obtain z where z_def: "z \<in> R" "y \<sim> z"
-      using assms(3) unfolding canonical_irreducibles_def by metis
-    have z_more: "irreducible G z" "z \<in> carrier G"
-      using z_def(1) assms(3) unfolding canonical_irreducibles_def by auto
-    have "y \<in> assocs G z" using z_def(2) z_more(2) y_def(2) 
-      by (simp add: closure_ofI2)
-    hence d_def: "d = assocs G z" using y_def(2,3) z_more(2)  assocs_repr_independence by blast
-    have "count (factor_mset G a) d = multiplicity G z a"
-      unfolding d_def by (intro factor_mset_count[OF assms(1) z_more(2,1)])
-    also have "... \<le> multiplicity G z b"
-      using assms(4) z_def(1) by simp
-    also have "... = count (factor_mset G b) d"
-      unfolding d_def by (intro factor_mset_count[symmetric, OF assms(2) z_more(2,1)])
-    finally show ?thesis by simp 
-  next
-    case False
-    have "count (factor_mset G a) d = 0" using False
-      by (intro factor_mset_count_2[OF assms(1)], simp)
-    moreover have "count (factor_mset G b) d = 0" using False
-      by (intro factor_mset_count_2[OF assms(2)], simp)
-    ultimately show ?thesis by simp
-  qed
-
-  hence "factor_mset G a \<subseteq># factor_mset G b" 
-    unfolding subseteq_mset_def by simp
-  thus ?thesis using factor_mset_divides assms(1,2) by simp
-qed
-
-lemma count_image_mset_inj:
-  assumes "inj_on f R" "x \<in> R" "set_mset A \<subseteq> R"
-  shows "count (image_mset f A) (f x) = count A x"
-proof (cases "x \<in># A")
-  case True
-  hence "(f y = f x \<and> y \<in># A) = (y = x)" for y 
-    by (meson assms(1) assms(3) inj_onD subsetD)
-  hence "(f -` {f x} \<inter> set_mset A) = {x}" 
-    by (simp add:set_eq_iff)
-  thus ?thesis
-    by (subst count_image_mset, simp)
-next
-  case False
-  hence "x \<notin> set_mset A" by simp
-  hence "f x \<notin> f ` set_mset A" using assms
-    by (simp add: inj_on_image_mem_iff)
-  hence "count (image_mset f A) (f x) = 0" 
-    by (simp add:count_eq_zero_iff)
-  thus ?thesis by (metis count_inI False)
-qed
-
-text \<open>Factorization of an element from a @{locale "factorial_monoid"} using a selection of representatives 
-from each equivalence class formed by @{term "(\<sim>)"}.\<close>
-
-lemma split_factors:
-  assumes "canonical_irreducibles G R"
-  assumes "a \<in> carrier G"
-  shows 
-    "finite {d. d \<in> R \<and> multiplicity G d a > 0}"
-    "a \<sim> (\<Otimes>d\<in>{d. d \<in> R \<and> multiplicity G d a > 0}. d [^] multiplicity G d a)" (is "a \<sim> ?rhs")
-proof -
-  have r_1: "R \<subseteq> {x. x \<in> carrier G \<and> irreducible G x}" 
-    using assms(1) unfolding canonical_irreducibles_def by simp
-  have r_2: "\<And>x y. x \<in> R \<Longrightarrow> y \<in> R \<Longrightarrow> x \<sim> y \<Longrightarrow> x = y" 
-    using assms(1) unfolding canonical_irreducibles_def by simp
-  
-  have assocs_inj: "inj_on (assocs G) R"
-    using r_1 r_2 assocs_eqD by (intro inj_onI, blast) 
-  
-  define R' where
-    "R' = (\<Sum>d\<in> {d. d \<in> R \<and> multiplicity G d a > 0}. replicate_mset (multiplicity G d a) d)"
-
-  have "\<And>x. x \<in> R \<and> 0 < multiplicity G x a \<Longrightarrow> count (factor_mset G a) (assocs G x) > 0"
-    using assms r_1 r_2 
-    by (subst factor_mset_count[OF assms(2)]) auto
-  hence "assocs G ` {d \<in> R. 0 < multiplicity G d a} \<subseteq> set_mset (factor_mset G a)"
-    by (intro image_subsetI, simp)
-  hence a:"finite (assocs G ` {d \<in> R. 0 < multiplicity G d a})"
-    using finite_subset by auto
-
-  show "finite {d \<in> R. 0 < multiplicity G d a}" 
-    using assocs_inj inj_on_subset[OF assocs_inj]
-    by (intro finite_imageD[OF a], simp)
-
-  hence count_R': "count R' d = (if d \<in> R then multiplicity G d a else 0)" for d
-    by (auto simp add:R'_def count_sum) 
-
-  have set_R': "set_mset R' = {d \<in> R. 0 < multiplicity G d a}"
-    unfolding set_mset_def using count_R' by auto
-
-  have "count (image_mset (assocs G) R') x = count (factor_mset G a) x" for x
-  proof (cases "\<exists>x'. x' \<in> R \<and> x = assocs G x'")
-    case True
-    then obtain x' where x'_def: "x' \<in> R" "x = assocs G x'"
-      by blast
-    have "count (image_mset (assocs G) R') x = count R' x'"
-      using assocs_inj inj_on_subset[OF assocs_inj] x'_def
-      by (subst x'_def(2), subst count_image_mset_inj[OF assocs_inj], auto simp add:set_R') 
-    also have "... = multiplicity G x' a"
-      using count_R' x'_def by simp
-    also have "... = count (factor_mset G a) (assocs G x')"
-      using x'_def(1) r_1
-      by (subst factor_mset_count[OF assms(2)]) auto
-    also have "... = count (factor_mset G a) x"
-      using x'_def(2) by simp
-    finally show ?thesis by simp
-  next
-    case False
-    have a:"x \<noteq> assocs G z" 
-      if a1: "z \<in> carrier G" and a2: "irreducible G z" for z
-    proof -
-      obtain v where v_def: "v \<in> R" "z \<sim> v"
-        using a1 a2 assms(1) unfolding canonical_irreducibles_def by auto
-      hence "z \<in> assocs G v"
-        using a1 r_1 v_def(1) by (simp add: closure_ofI2)
-      hence "assocs G z = assocs G v"
-        using a1 r_1 v_def(1)  assocs_repr_independence
-        by auto
-      moreover have "x \<noteq> assocs G v"
-        using False v_def(1) by simp
-      ultimately show ?thesis by simp
-    qed
-
-    have "count (image_mset (assocs G) R') x = 0"
-      using False count_R' by (simp add: count_image_mset) auto
-    also have "... = count (factor_mset G a) x"
-      using a
-      by (intro factor_mset_count_2[OF assms(2), symmetric]) auto 
-    finally show ?thesis by simp
-  qed
-
-  hence "image_mset (assocs G) R' = factor_mset G a"
-    by (rule multiset_eqI)
-
-  moreover have "set_mset R' \<subseteq> carrier G" 
-    using r_1 by (auto simp add:set_R') 
-  ultimately have "a \<sim> (\<Otimes>x\<in>set_mset R'. x [^] count R' x)"
-    using assms(2) by (intro factor_mset_choose, auto)
-  also have "... = ?rhs"
-    using set_R' assms r_1 r_2
-    by (intro finprod_cong', auto simp add:count_R')
-  finally show "a \<sim> ?rhs" by simp
-qed
-
-end
-
 subsection \<open>Polynomials\<close>
 
 text \<open>The embedding of the constant polynomials into the polynomials is injective:\<close>
@@ -599,13 +159,11 @@ proof (rule ring_hom_ringI)
     unfolding univ_poly_one by simp
 qed
 
-
-text \<open>The following are versions of the properties of the degree's of polynomials, that abstract
-over the definition of the polynomial ring structure.
-
-In the theories @{theory "HOL-Algebra.Polynomials"} and 
-@{theory "HOL-Algebra.Polynomial_Divisibility"} these abstract version are usually indicated with
-the suffix ``shell'', e.g.: @{thm [source] "domain.pdivides_iff_shell"}.\<close>
+text \<open>The following are versions of the properties of the degrees of polynomials, that abstract
+over the definition of the polynomial ring structure. In the theories
+@{theory "HOL-Algebra.Polynomials"} and also @{theory "HOL-Algebra.Polynomial_Divisibility"}
+these abstract version are usually indicated with the suffix ``shell'', consider for example:
+@{thm [source] "domain.pdivides_iff_shell"}.\<close>
 
 lemma (in ring) degree_add_distinct:
   assumes "subring K R" 
@@ -630,7 +188,8 @@ lemma (in ring) degree_one:
   "degree (\<one>\<^bsub>K[X]\<^esub>) = 0"
   unfolding univ_poly_one by simp
 
-lemma (in domain) pow_non_zero: "x \<in> carrier R \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> x [^] (n :: nat) \<noteq> \<zero>"
+lemma (in domain) pow_non_zero: 
+  "x \<in> carrier R \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> x [^] (n :: nat) \<noteq> \<zero>"
   using integral by (induction n, auto) 
 
 lemma (in domain) degree_pow:
@@ -733,9 +292,10 @@ proof -
     then show ?case by (simp add:univ_poly_one)
   next
     case (insert x F)
-    have "degree (finprod (K [X]) f (insert x F)) = degree (f x \<otimes>\<^bsub>K [X]\<^esub> finprod (K [X]) f F)"
+    have "degree (finprod (K[X]) f (insert x F)) = 
+      degree (f x \<otimes>\<^bsub>K[X]\<^esub> finprod (K[X]) f F)"
       using insert by (subst p.finprod_insert, auto)
-    also have "... = degree (f x) + degree (finprod (K [X]) f F)"
+    also have "... = degree (f x) + degree (finprod (K[X]) f F)"
       using insert p.finprod_non_zero[OF insert(1)]
       by (subst degree_mult[OF assms(2)], simp_all) 
     also have "... = degree (f x) + (\<Sum>i \<in> F. degree (f i))"
@@ -752,17 +312,23 @@ lemma (in ring) coeff_add:
   shows "coeff (f \<oplus>\<^bsub>K[X]\<^esub> g) i = coeff f i \<oplus>\<^bsub>R\<^esub> coeff g i"
 proof -
   have a:"set f \<subseteq> carrier R"
-    using assms(1,2) univ_poly_carrier subringE(1)[OF assms(1)] polynomial_incl by blast
+    using assms(1,2) univ_poly_carrier 
+    using subringE(1)[OF assms(1)] polynomial_incl
+    by blast
   have b:"set g \<subseteq> carrier R" 
-    using assms(1,3) univ_poly_carrier subringE(1)[OF assms(1)] polynomial_incl by blast
+    using assms(1,3) univ_poly_carrier
+    using subringE(1)[OF assms(1)] polynomial_incl
+    by blast
   show ?thesis
     unfolding univ_poly_add poly_add_coeff[OF a b] by simp
 qed
 
-lemma (in principal_domain) geom:
+text \<open>This is a version of geometric sums for commutative rings:\<close>
+
+lemma (in cring) geom:
   fixes q:: nat
   assumes [simp]: "a \<in> carrier R"
-  shows "(a \<ominus> \<one>) \<otimes> (\<Oplus>i\<in>{0..<q}. a [^] i) = (a [^] q \<ominus> \<one>)"
+  shows "(a \<ominus> \<one>) \<otimes> (\<Oplus>i\<in>{..<q}. a [^] i) = (a [^] q \<ominus> \<one>)"
     (is "?lhs = ?rhs")
 proof -
   have [simp]: "a [^] i \<in> carrier R" for i :: nat
@@ -772,18 +338,26 @@ proof -
 
   let ?cterm = "(\<Oplus>i\<in>{1..<q}. a [^] i)"
 
-  have "?lhs = a \<otimes> (\<Oplus>i\<in>{0..<q}. a [^] i)  \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+  have "?lhs = a \<otimes> (\<Oplus>i\<in>{..<q}. a [^] i)  \<ominus> (\<Oplus>i\<in>{..<q}. a [^] i)"
     unfolding a_minus_def by (subst l_distr, simp_all add:Pi_def)
-  also have "... = (\<Oplus>i\<in>{0..<q}. a \<otimes> a [^] i) \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+  also have "... = (\<Oplus>i\<in>{..<q}. a \<otimes> a [^] i) \<ominus> (\<Oplus>i\<in>{..<q}. a [^] i)"
     by (subst finsum_rdistr, simp_all add:Pi_def)
-  also have "... = (\<Oplus>i\<in>{0..<q}. a [^] (Suc i)) \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+  also have "... = (\<Oplus>i\<in>{..<q}. a [^] (Suc i)) \<ominus> (\<Oplus>i\<in>{..<q}. a [^] i)"
     by (subst nat_pow_Suc, simp_all add:m_comm)
-  also have "... = (\<Oplus>i\<in>Suc ` {0..<q}. a [^] i) \<ominus> (\<Oplus>i\<in>{0..<q}. a [^] i)"
+  also have "... = (\<Oplus>i\<in>Suc ` {..<q}. a [^] i) \<ominus> (\<Oplus>i\<in>{..<q}. a [^] i)"
     by (subst finsum_reindex, simp_all)
-  also have "... = (\<Oplus>i\<in>insert q {1..<q}. a [^] i) \<ominus> (\<Oplus>i\<in> insert 0 {1..<q}. a [^] i)"
+  also have "... = 
+    (\<Oplus>i\<in> insert q {1..<q}. a [^] i) \<ominus> 
+    (\<Oplus>i\<in> insert 0 {1..<q}. a [^] i)"
   proof (cases "q > 0")
     case True
-    then show ?thesis by (intro arg_cong2[where f="\<lambda>x y. x \<ominus> y"] finsum_cong, auto) 
+    moreover have "Suc ` {..<q} = insert q {Suc 0..<q}" 
+      using True lessThan_atLeast0 by fastforce 
+    moreover have "{..<q} = insert 0 {Suc 0..<q}"
+      using True by (auto simp add:set_eq_iff) 
+    ultimately show ?thesis 
+      by (intro arg_cong2[where f="\<lambda>x y. x \<ominus> y"] finsum_cong)
+        simp_all
   next
     case False
     then show ?thesis by (simp, algebra)
@@ -807,7 +381,8 @@ qed
 
 lemma (in domain) rupture_eq_0_iff:
   assumes "subfield K R" "p \<in> carrier (K[X])" "q \<in> carrier (K[X])"
-  shows "rupture_surj K p q = \<zero>\<^bsub>Rupt K p\<^esub> \<longleftrightarrow> p pdivides q" (is "?lhs \<longleftrightarrow> ?rhs")
+  shows "rupture_surj K p q = \<zero>\<^bsub>Rupt K p\<^esub> \<longleftrightarrow> p pdivides q"
+    (is "?lhs \<longleftrightarrow> ?rhs")
 proof -
   interpret h:ring_hom_ring "K[X]" "(Rupt K p)" "(rupture_surj K p)"
     using assms subfieldE by (intro rupture_surj_hom) auto
@@ -820,10 +395,9 @@ proof -
   hence b: "\<zero>\<^bsub>K[X]\<^esub> \<in> (\<lambda>q. q pmod p) ` carrier (K[X])" 
     by (simp add:image_iff) auto
 
-  have "?lhs \<longleftrightarrow> rupture_surj K p (q pmod p) = rupture_surj K p (\<zero>\<^bsub>K[X]\<^esub>)" 
-    apply (subst h.hom_zero)
-    apply (subst rupture_surj_composed_with_pmod[OF assms])
-    by simp
+  have "?lhs \<longleftrightarrow> rupture_surj K p (q pmod p) = 
+    rupture_surj K p (\<zero>\<^bsub>K[X]\<^esub>)" 
+    by (subst rupture_surj_composed_with_pmod[OF assms]) simp
   also have "... \<longleftrightarrow> q pmod p = \<zero>\<^bsub>K[X]\<^esub>"
     using assms(3)
     by (intro inj_on_eq_iff[OF rupture_surj_inj_on[OF assms(1,2)]] a b)
@@ -834,6 +408,9 @@ proof -
 qed
 
 subsection \<open>Ring Isomorphisms\<close>
+
+text \<open>The following lemma shows that an isomorphism between domains also induces an isomorphism
+between the corresponding polynomial rings.\<close>
 
 lemma lift_iso_to_poly_ring:
   assumes "h \<in> ring_iso R S" "domain R" "domain S"
@@ -855,41 +432,49 @@ proof (rule ring_iso_memI)
     using assms(1) unfolding ring_iso_def bij_betw_def by auto
   have h_inj: "inj_on h (carrier R)" 
     using assms(1) unfolding ring_iso_def bij_betw_def by auto
-  hence h_non_zero_iff: "x \<noteq> \<zero>\<^bsub>R\<^esub> \<Longrightarrow> x \<in> carrier R \<Longrightarrow> h x \<noteq> \<zero>\<^bsub>S\<^esub>" for x
-    using h.hom_zero dr.zero_closed inj_onD by metis
+  hence h_non_zero_iff:  "h x \<noteq> \<zero>\<^bsub>S\<^esub>"
+    if "x \<noteq> \<zero>\<^bsub>R\<^esub>" "x \<in> carrier R" for x
+    using h.hom_zero dr.zero_closed inj_onD that by metis
 
-  have norm_elim: "ds.normalize (map h x) = map h x" if a:"x \<in> carrier (poly_ring R)" for x 
+  have norm_elim: "ds.normalize (map h x) = map h x" 
+    if "x \<in> carrier (poly_ring R)" for x 
   proof (cases "x")
     case Nil then show ?thesis by simp
   next
     case (Cons xh xt)
     have "xh \<in> carrier R" "xh \<noteq> \<zero>\<^bsub>R\<^esub>"
-      using a unfolding Cons univ_poly_carrier[symmetric] polynomial_def by auto
+      using that unfolding Cons univ_poly_carrier[symmetric] 
+      unfolding polynomial_def by auto
     hence "h xh \<noteq> \<zero>\<^bsub>S\<^esub>" using h_non_zero_iff by simp
     then show ?thesis unfolding Cons by simp
   qed
 
-  show t_1: "map h x \<in> carrier ?S" if a:"x \<in> carrier ?R" for x
-    using a hd_in_set h_non_zero_iff hd_map
+  show t_1: "map h x \<in> carrier ?S" 
+    if "x \<in> carrier ?R" for x
+    using that hd_in_set h_non_zero_iff hd_map
     unfolding univ_poly_carrier[symmetric] polynomial_def 
     by (cases x, auto)
 
-  show "map h (x \<otimes>\<^bsub>?R\<^esub> y) = map h x \<otimes>\<^bsub>?S\<^esub> map h y" if a:"x \<in> carrier ?R" "y \<in> carrier ?R" for x y
+  show "map h (x \<otimes>\<^bsub>?R\<^esub> y) = map h x \<otimes>\<^bsub>?S\<^esub> map h y" 
+    if "x \<in> carrier ?R" "y \<in> carrier ?R" for x y
   proof -
     have "map h (x \<otimes>\<^bsub>?R\<^esub> y) = ds.normalize (map h (x \<otimes>\<^bsub>?R\<^esub> y))"
-      using a by (intro norm_elim[symmetric],simp) 
+      using that by (intro norm_elim[symmetric],simp) 
     also have "... = map h x \<otimes>\<^bsub>?S\<^esub> map h y"
-      using a unfolding univ_poly_mult univ_poly_carrier[symmetric] polynomial_def
+      using that unfolding univ_poly_mult univ_poly_carrier[symmetric] 
+      unfolding polynomial_def
       by (intro h.poly_mult_hom'[of x y] , auto)
     finally show ?thesis by simp
   qed
 
-  show "map h (x \<oplus>\<^bsub>?R\<^esub> y) = map h x \<oplus>\<^bsub>?S\<^esub> map h y" if a:"x \<in> carrier ?R" "y \<in> carrier ?R" for x y
+  show "map h (x \<oplus>\<^bsub>?R\<^esub> y) = map h x \<oplus>\<^bsub>?S\<^esub> map h y"
+    if "x \<in> carrier ?R" "y \<in> carrier ?R" for x y
   proof -
     have "map h (x \<oplus>\<^bsub>?R\<^esub> y) = ds.normalize (map h (x \<oplus>\<^bsub>?R\<^esub> y))"
-      using a by (intro norm_elim[symmetric],simp) 
+      using that by (intro norm_elim[symmetric],simp) 
     also have "... = map h x \<oplus>\<^bsub>?S\<^esub> map h y"
-      using a unfolding univ_poly_add univ_poly_carrier[symmetric] polynomial_def
+      using that unfolding univ_poly_add univ_poly_carrier[symmetric] 
+      unfolding polynomial_def
       by (intro h.poly_add_hom'[of x y], auto)
     finally show ?thesis by simp
   qed
@@ -901,48 +486,60 @@ proof (rule ring_iso_memI)
 
   have "map h \<in> carrier ?R \<rightarrow> carrier ?S" 
     using t_1 by simp
-  moreover have "?hinv x \<in> carrier ?R" if a: "x \<in> carrier ?S" for x
+  moreover have "?hinv x \<in> carrier ?R" 
+    if "x \<in> carrier ?S" for x
   proof (cases "x = []")
     case True
-    then show ?thesis by (simp add:univ_poly_carrier[symmetric] polynomial_def)
+    then show ?thesis 
+      by (simp add:univ_poly_carrier[symmetric] polynomial_def)
   next
     case False
     have set_x: "set x \<subseteq> h ` carrier R" 
-      using a h_img unfolding univ_poly_carrier[symmetric] polynomial_def by auto
-
+      using that h_img unfolding univ_poly_carrier[symmetric]
+      unfolding polynomial_def by auto
     have "lead_coeff x \<noteq> \<zero>\<^bsub>S\<^esub>" "lead_coeff x \<in> carrier S"
-      using a False unfolding univ_poly_carrier[symmetric] polynomial_def by auto
-    hence "the_inv_into (carrier R) h (lead_coeff x) \<noteq> the_inv_into (carrier R) h \<zero>\<^bsub>S\<^esub>" 
-      using inj_on_the_inv_into[OF h_inj] inj_onD ds.zero_closed h_img by metis
+      using that False unfolding univ_poly_carrier[symmetric]
+      unfolding polynomial_def by auto
+    hence "the_inv_into (carrier R) h (lead_coeff x) \<noteq> 
+      the_inv_into (carrier R) h \<zero>\<^bsub>S\<^esub>" 
+      using inj_on_the_inv_into[OF h_inj] inj_onD 
+      using ds.zero_closed h_img by metis
     hence "the_inv_into (carrier R) h (lead_coeff x) \<noteq> \<zero>\<^bsub>R\<^esub>" 
-      unfolding h.hom_zero[symmetric] the_inv_into_f_f[OF h_inj dr.zero_closed] by simp
+      unfolding h.hom_zero[symmetric] 
+      unfolding the_inv_into_f_f[OF h_inj dr.zero_closed] by simp
     hence "lead_coeff (?hinv x) \<noteq> \<zero>\<^bsub>R\<^esub>" 
       using False by (simp add:hd_map)
     moreover have "the_inv_into (carrier R) h ` set x \<subseteq> carrier R" 
       using the_inv_into_into[OF h_inj] set_x
       by (intro image_subsetI) auto
     hence "set (?hinv x) \<subseteq> carrier R" by simp 
-    ultimately show ?thesis by (simp add:univ_poly_carrier[symmetric] polynomial_def)
+    ultimately show ?thesis
+      by (simp add:univ_poly_carrier[symmetric] polynomial_def)
   qed
-  moreover have "?hinv (map h x) = x" if a:"x \<in> carrier ?R" for x 
+  moreover have "?hinv (map h x) = x" if "x \<in> carrier ?R" for x 
   proof -
     have set_x: "set x \<subseteq> carrier R" 
-      using a unfolding univ_poly_carrier[symmetric] polynomial_def by auto
+      using that unfolding univ_poly_carrier[symmetric]
+      unfolding polynomial_def by auto
     have "?hinv (map h x) = map (\<lambda>y. the_inv_into (carrier R) h (h y)) x"
       by simp
     also have "... = map id x"
-      using set_x by (intro map_cong, auto simp add:the_inv_into_f_f[OF h_inj])
+      using set_x by (intro map_cong)
+        (auto simp add:the_inv_into_f_f[OF h_inj])
     also have "... = x" by simp
     finally show ?thesis by simp
   qed
-  moreover have "map h (?hinv x) = x" if a:"x \<in> carrier ?S" for x
+  moreover have "map h (?hinv x) = x" 
+    if "x \<in> carrier ?S" for x
   proof -
     have set_x: "set x \<subseteq> h ` carrier R" 
-      using a h_img unfolding univ_poly_carrier[symmetric] polynomial_def by auto
+      using that h_img unfolding univ_poly_carrier[symmetric]
+      unfolding polynomial_def by auto
     have "map h (?hinv x) = map (\<lambda>y. h (the_inv_into (carrier R) h y)) x"
       by simp
     also have "... = map id x"
-      using set_x by (intro map_cong, auto simp add:f_the_inv_into_f[OF h_inj])
+      using set_x by (intro map_cong)
+        (auto simp add:f_the_inv_into_f[OF h_inj])
     also have "... = x" by simp
     finally show ?thesis by simp
   qed
@@ -962,7 +559,9 @@ qed
 
 lemma carrier_hom':
   assumes "f \<in> carrier (poly_ring R)"
-  assumes "h \<in> ring_hom R S" "domain R" "domain S" "inj_on h (carrier R)"
+  assumes "h \<in> ring_hom R S"
+  assumes "domain R" "domain S" 
+  assumes "inj_on h (carrier R)"
   shows "map h f \<in> carrier (poly_ring S)"
 proof -
   let ?S = "S \<lparr> carrier := h ` carrier R \<rparr>"
@@ -970,7 +569,8 @@ proof -
   interpret dr: domain "R" using assms(3) by blast
   interpret ds: domain "S" using assms(4) by blast
   interpret h1: ring_hom_ring R S h
-    using assms(2) ring_hom_ringI2 dr.ring_axioms ds.ring_axioms by blast 
+    using assms(2) ring_hom_ringI2 dr.ring_axioms 
+    using ds.ring_axioms by blast 
   have subr: "subring (h ` carrier R) S" 
     using h1.img_is_subring[OF dr.carrier_is_subring] by blast
   interpret h: ring_hom_ring "((h ` carrier R)[X]\<^bsub>S\<^esub>)" "poly_ring S" "id"
@@ -984,24 +584,27 @@ proof -
   ultimately have h_iso: "h \<in> ring_iso R ?S"
     unfolding ring_iso_def by simp
 
-
   have dom_S: "domain ?S" 
     using ds.subring_is_domain[OF subr] by simp
 
   note poly_iso = lift_iso_to_poly_ring[OF h_iso assms(3) dom_S]
   have "map h f \<in> carrier (poly_ring ?S)"
     using ring_iso_memE(1)[OF poly_iso assms(1)] by simp
-  also have "carrier (poly_ring ?S) = carrier (univ_poly S (h ` carrier R))"
+  also have "carrier (poly_ring ?S) = 
+    carrier (univ_poly S (h ` carrier R))"
     using ds.univ_poly_consistent[OF subr] by simp
   also have "... \<subseteq> carrier (poly_ring S)"
     using h.hom_closed by auto
   finally show ?thesis by simp
 qed
 
-
+text \<open>The following lemmas transfer properties like divisibility, irreducibility etc. between
+ring isomorphisms.\<close>
 
 lemma divides_hom:
-  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R" "y \<in> carrier R"
+  assumes "h \<in> ring_iso R S" 
+  assumes "domain R" "domain S" 
+  assumes "x \<in> carrier R" "y \<in> carrier R"
   shows "x divides\<^bsub>R\<^esub> y \<longleftrightarrow> (h x) divides\<^bsub>S\<^esub> (h y)"  (is "?lhs \<longleftrightarrow> ?rhs")
 proof -
   interpret dr: domain "R" using assms(2) by blast
@@ -1063,7 +666,7 @@ proof -
 
   have "x \<in> Units R \<longleftrightarrow> (\<exists>y\<in>carrier R. x \<otimes>\<^bsub>R\<^esub> y = \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>R\<^esub> x = \<one>\<^bsub>R\<^esub>)"
     using assms unfolding Units_def by auto
-  also have "... \<longleftrightarrow>  (\<exists>y\<in>carrier R. h x \<otimes>\<^bsub>S\<^esub> h y = h \<one>\<^bsub>R\<^esub> \<and> h y \<otimes>\<^bsub>S\<^esub> h x = h \<one>\<^bsub>R\<^esub>)"
+  also have "... \<longleftrightarrow> (\<exists>y\<in>carrier R. h x \<otimes>\<^bsub>S\<^esub> h y = h \<one>\<^bsub>R\<^esub> \<and> h y \<otimes>\<^bsub>S\<^esub> h x = h \<one>\<^bsub>R\<^esub>)"
     using h_one_iff assms by (intro bex_cong, simp_all flip:h.hom_mult)
   also have "... \<longleftrightarrow> (\<exists>y\<in>carrier S. h x \<otimes>\<^bsub>S\<^esub> y = h \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>S\<^esub> h x = \<one>\<^bsub>S\<^esub>)"
     unfolding h_img[symmetric] by simp
@@ -1072,10 +675,10 @@ proof -
   finally show ?thesis by simp
 qed
 
-
-
 lemma irreducible_hom:
-  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R"
+  assumes "h \<in> ring_iso R S" 
+  assumes "domain R" "domain S" 
+  assumes "x \<in> carrier R"
   shows "irreducible R x = irreducible S (h x)"
 proof -
   have h_img: "h ` (carrier R) = carrier S" 
@@ -1137,6 +740,8 @@ proof -
     by (intro ring_hom_memI, auto) 
 qed
 
+text \<open>The natural homomorphism between factor rings, where one ideal is a subset of the other.\<close>
+
 lemma (in ring) quot_quot_hom: 
   assumes "ideal I R"
   assumes "ideal J R"
@@ -1151,7 +756,8 @@ proof (rule ring_hom_memI)
   have a:"J <+>\<^bsub>R\<^esub> I = J"
     using assms(3) unfolding set_add_def set_mult_def by auto
 
-  show "J <+>\<^bsub>R\<^esub> x \<in> carrier (R Quot J)" if "x \<in> carrier (R Quot I)" for x
+  show "J <+>\<^bsub>R\<^esub> x \<in> carrier (R Quot J)"
+    if "x \<in> carrier (R Quot I)" for x
   proof -
     have " \<exists>y\<in>carrier R. x = I +> y" 
       using that unfolding FactRing_def A_RCOSETS_def' by simp
@@ -1165,8 +771,10 @@ proof (rule ring_hom_memI)
       using y_def unfolding FactRing_def A_RCOSETS_def' by auto 
   qed
 
-  show "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y = (J <+>\<^bsub>R\<^esub> x) \<otimes>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
-    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)" for x y
+  show "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y = 
+    (J <+>\<^bsub>R\<^esub> x) \<otimes>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
+    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)" 
+    for x y
   proof -
     have "\<exists>x1\<in>carrier R. x = I +> x1" "\<exists>y1\<in>carrier R. y = I +> y1" 
       using that unfolding FactRing_def A_RCOSETS_def' by auto
@@ -1174,7 +782,7 @@ proof (rule ring_hom_memI)
       where x1_def: "x1 \<in> carrier R" "x = I +> x1"
         and y1_def: "y1 \<in> carrier R" "y = I +> y1"
       by auto
-    have "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y =  J <+>\<^bsub>R\<^esub> (I +> x1 \<otimes> y1)"
+    have "J <+>\<^bsub>R\<^esub> x \<otimes>\<^bsub>R Quot I\<^esub> y = J <+>\<^bsub>R\<^esub> (I +> x1 \<otimes> y1)"
       using x1_def y1_def
       by (simp add: FactRing_def ii.rcoset_mult_add)
     also have "... = (J <+>\<^bsub>R\<^esub> I) +> x1 \<otimes> y1"
@@ -1184,9 +792,11 @@ proof (rule ring_hom_memI)
       using a by simp
     also have "... = [mod J:] (J +> x1) \<Otimes> (J +> y1)" 
       using x1_def(1) y1_def(1) by (subst ji.rcoset_mult_add, auto)
-    also have "... = [mod J:] ((J <+>\<^bsub>R\<^esub> I) +> x1) \<Otimes> ((J <+>\<^bsub>R\<^esub> I) +> y1)" 
+    also have "... = 
+      [mod J:] ((J <+>\<^bsub>R\<^esub> I) +> x1) \<Otimes> ((J <+>\<^bsub>R\<^esub> I) +> y1)" 
       using a by simp
-    also have "... = [mod J:] (J <+>\<^bsub>R\<^esub> (I +> x1)) \<Otimes> (J <+>\<^bsub>R\<^esub> (I +> y1))"
+    also have "... = 
+      [mod J:] (J <+>\<^bsub>R\<^esub> (I +> x1)) \<Otimes> (J <+>\<^bsub>R\<^esub> (I +> y1))"
       using x1_def(1) y1_def(1)
       by (subst (1 2) a_setmult_rcos_assoc) auto
     also have "... = (J <+>\<^bsub>R\<^esub> x) \<otimes>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
@@ -1194,8 +804,10 @@ proof (rule ring_hom_memI)
     finally show ?thesis by simp
   qed
 
-  show "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = (J <+>\<^bsub>R\<^esub> x) \<oplus>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
-    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)" for x y
+  show "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = 
+    (J <+>\<^bsub>R\<^esub> x) \<oplus>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
+    if "x \<in> carrier (R Quot I)" "y \<in> carrier (R Quot I)"
+    for x y
   proof -
     have "\<exists>x1\<in>carrier R. x = I +> x1" "\<exists>y1\<in>carrier R. y = I +> y1" 
       using that unfolding FactRing_def A_RCOSETS_def' by auto
@@ -1203,7 +815,8 @@ proof (rule ring_hom_memI)
       where x1_def: "x1 \<in> carrier R" "x = I +> x1"
         and y1_def: "y1 \<in> carrier R" "y = I +> y1"
       by auto
-    have "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = J <+>\<^bsub>R\<^esub> ((I +> x1) <+>\<^bsub>R\<^esub> (I +> y1))"
+    have "J <+>\<^bsub>R\<^esub> x \<oplus>\<^bsub>R Quot I\<^esub> y = 
+      J <+>\<^bsub>R\<^esub> ((I +> x1) <+>\<^bsub>R\<^esub> (I +> y1))"
       using x1_def y1_def by (simp add:FactRing_def)
     also have "... = J <+>\<^bsub>R\<^esub> (I +> (x1 \<oplus> y1))"
       using x1_def y1_def ii.a_rcos_sum by simp
@@ -1211,9 +824,11 @@ proof (rule ring_hom_memI)
       using x1_def y1_def by (subst a_setmult_rcos_assoc) auto
     also have "... = J +> (x1 \<oplus> y1)"
       using a by simp
-    also have "... = ((J <+>\<^bsub>R\<^esub> I) +> x1) <+>\<^bsub>R\<^esub> ((J <+>\<^bsub>R\<^esub> I) +> y1)"
+    also have "... = 
+      ((J <+>\<^bsub>R\<^esub> I) +> x1) <+>\<^bsub>R\<^esub> ((J <+>\<^bsub>R\<^esub> I) +> y1)"
       using x1_def y1_def ji.a_rcos_sum a by simp
-    also have "... =  J <+>\<^bsub>R\<^esub> (I +> x1) <+>\<^bsub>R\<^esub> (J <+>\<^bsub>R\<^esub> (I +> y1))" 
+    also have "... = 
+      J <+>\<^bsub>R\<^esub> (I +> x1) <+>\<^bsub>R\<^esub> (J <+>\<^bsub>R\<^esub> (I +> y1))" 
       using x1_def y1_def by (subst (1 2) a_setmult_rcos_assoc) auto
     also have "... = (J <+>\<^bsub>R\<^esub> x) \<oplus>\<^bsub>R Quot J\<^esub> (J <+>\<^bsub>R\<^esub> y)"
       using x1_def y1_def by (simp add:FactRing_def)
@@ -1258,11 +873,39 @@ proof -
   finally show ?thesis by simp
 qed
 
+text \<open>Adapted from the proof of @{thm [source] domain.polynomial_rupture}\<close>
+
+lemma (in domain) rupture_surj_as_eval:
+  assumes "subring K R" 
+  assumes "p \<in> carrier (K[X])" "q \<in> carrier (K[X])"
+  shows "rupture_surj K p q = 
+    ring.eval (Rupt K p) (map ((rupture_surj K p) \<circ> poly_of_const) q) 
+    (rupture_surj K p X)"
+proof -
+  let ?surj = "rupture_surj K p"
+
+  interpret UP: domain "K[X]"
+    using univ_poly_is_domain[OF assms(1)] .
+  interpret h: ring_hom_ring "K[X]" "Rupt K p" ?surj
+    using rupture_surj_hom(2)[OF assms(1,2)] .
+
+  have "(h.S.eval) (map (?surj \<circ> poly_of_const) q) (?surj X) = 
+    ?surj ((UP.eval) (map poly_of_const q) X)"
+    using h.eval_hom[OF UP.carrier_is_subring var_closed(1)[OF assms(1)]
+          map_norm_in_poly_ring_carrier[OF assms(1,3)]] by simp
+  also have " ... = ?surj q"
+    unfolding sym[OF eval_rewrite[OF assms(1,3)]] ..
+  finally show ?thesis by simp
+qed
+
 subsection \<open>Divisibility\<close>
 
 lemma  (in field) f_comm_group_1:
-  "x \<in> carrier R \<Longrightarrow> x \<noteq> \<zero> \<Longrightarrow> y \<in> carrier R \<Longrightarrow> y \<noteq> \<zero> \<Longrightarrow> x \<otimes> y = \<zero> \<Longrightarrow> False" 
-  using integral by auto
+  assumes "x \<in> carrier R" "y \<in> carrier R"
+  assumes "x \<noteq> \<zero>" "y \<noteq> \<zero>"
+  assumes "x \<otimes> y = \<zero>"
+  shows "False" 
+  using integral assms by auto
 
 lemma (in field) f_comm_group_2:
   assumes "x \<in> carrier R"
@@ -1276,7 +919,8 @@ qed
 sublocale field < mult_of: comm_group "mult_of R"
   rewrites "mult (mult_of R) = mult R"
        and "one  (mult_of R) = one R"
-  by (auto intro!:comm_groupI f_comm_group_1 m_assoc m_comm f_comm_group_2)
+  using f_comm_group_1 f_comm_group_2
+  by (auto intro!:comm_groupI m_assoc m_comm)
 
 lemma (in domain) div_neg:
   assumes "a \<in> carrier R" "b \<in> carrier R"
@@ -1336,27 +980,6 @@ next
   assume "a divides c"
   thus "a divides (b \<oplus> c)"
     using assms by (intro div_sum) auto
-qed
-
-text \<open>Adapted from the proof of @{thm [source] domain.polynomial_rupture}\<close>
-
-lemma (in domain) rupture_surj_as_eval:
-  assumes "subring K R" and "p \<in> carrier (K[X])" "q \<in> carrier (K[X])"
-  shows "rupture_surj K p q = ring.eval (Rupt K p) (map ((rupture_surj K p) \<circ> poly_of_const) q) (rupture_surj K p X)"
-proof -
-  let ?surj = "rupture_surj K p"
-
-  interpret UP: domain "K[X]"
-    using univ_poly_is_domain[OF assms(1)] .
-  interpret Hom: ring_hom_ring "K[X]" "Rupt K p" ?surj
-    using rupture_surj_hom(2)[OF assms(1,2)] .
-
-  have "(Hom.S.eval) (map (?surj \<circ> poly_of_const) q) (?surj X) = ?surj ((UP.eval) (map poly_of_const q) X)"
-    using Hom.eval_hom[OF UP.carrier_is_subring var_closed(1)[OF assms(1)]
-          map_norm_in_poly_ring_carrier[OF assms(1,3)]] by simp
-  also have " ... = ?surj q"
-    unfolding sym[OF eval_rewrite[OF assms(1,3)]] ..
-  finally show ?thesis by simp
 qed
 
 end

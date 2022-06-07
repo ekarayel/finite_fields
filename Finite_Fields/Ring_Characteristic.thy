@@ -2,10 +2,224 @@ section \<open>Characteristic of Rings\label{sec:ring_char}\<close>
 
 theory Ring_Characteristic
   imports 
-    "Finite_Field_Locale"
+    "Finite_Fields_Factorization_Ext"
     "HOL-Algebra.IntRing" 
     "HOL-Algebra.Embedded_Algebras"
 begin
+
+locale finite_field = field +
+  assumes finite_carrier: "finite (carrier R)"
+begin
+
+lemma finite_field_min_order:
+  "order R > 1"
+proof (rule ccontr)
+  assume a:"\<not>(1 < order R)"
+  have "{\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<subseteq> carrier R" by auto
+  hence "card {\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<le> card (carrier R)"
+    using card_mono finite_carrier by blast
+  also have "... \<le> 1" using a by (simp add:order_def)
+  finally have "card {\<zero>\<^bsub>R\<^esub>,\<one>\<^bsub>R\<^esub>} \<le> 1" by blast
+  thus "False" by simp
+qed
+
+lemma (in finite_field) order_pow_eq_self:
+  assumes "x \<in> carrier R"
+  shows "x [^] (order R) = x"
+proof (cases "x = \<zero>")
+  case True
+  have "order R > 0"
+    using assms(1) order_gt_0_iff_finite finite_carrier by simp
+  then obtain n where n_def:"order R = Suc n" 
+    using lessE by blast
+  have "x [^] (order R) = \<zero>" 
+    unfolding n_def using True by (subst nat_pow_Suc, simp)
+  thus ?thesis using True by simp
+next
+  case False
+  have x_carr:"x \<in> carrier (mult_of R)"
+    using False assms by simp
+
+  have carr_non_empty: "card (carrier R) > 0" 
+    using order_gt_0_iff_finite finite_carrier unfolding order_def by simp
+  have "x [^] (order R) = x [^]\<^bsub>mult_of R\<^esub> (order R)"
+    by (simp add:nat_pow_mult_of)
+  also have "... = x [^]\<^bsub>mult_of R\<^esub> (order (mult_of R)+1)"
+    using carr_non_empty unfolding order_def
+    by (intro arg_cong[where f="\<lambda>t. x [^]\<^bsub>mult_of R\<^esub> t"]) (simp)
+  also have "... = x"
+    using x_carr
+    by (simp add:mult_of.pow_order_eq_1)
+  finally show "x [^] (order R) = x"
+    by simp
+qed
+
+lemma (in finite_field) order_pow_eq_self':
+  assumes "x \<in> carrier R"
+  shows "x [^] (order R ^ d) = x"
+proof (induction d)
+  case 0
+  then show ?case using assms by simp
+next
+  case (Suc d)
+  have "x [^] order R ^ (Suc d) = x [^] (order R ^ d * order R)"
+    by (simp add:mult.commute)
+  also have "... = (x [^] (order R ^ d)) [^] order R"
+    using assms by (simp add: nat_pow_pow)
+  also have "... = (x [^] (order R ^ d))"
+    using order_pow_eq_self assms by simp
+  also have "... = x"
+    using Suc by simp
+  finally show ?case by simp
+qed
+
+end
+
+lemma finite_fieldI:
+  assumes "field R"
+  assumes "finite (carrier R)"
+  shows "finite_field R"
+  using assms unfolding finite_field_def finite_field_axioms_def by auto
+
+lemma (in domain) finite_domain_units:
+  assumes "finite (carrier R)"
+  shows "Units R = carrier R - {\<zero>}" (is "?lhs = ?rhs")
+proof 
+  have "Units R \<subseteq> carrier R" by (simp add:Units_def) 
+  moreover have "\<zero> \<notin> Units R"
+    by (meson zero_is_prime(1) primeE)
+  ultimately show "Units R \<subseteq> carrier R - {\<zero>}" by blast
+next
+  have "x \<in> Units R" if a: "x \<in> carrier R - {\<zero>}" for x
+  proof -
+    have x_carr: "x \<in> carrier R" using a by blast
+    define f where "f = (\<lambda>y. y \<otimes>\<^bsub>R\<^esub> x)"
+    have "inj_on f (carrier R)" unfolding f_def
+      by (rule inj_onI, metis DiffD1 DiffD2 a m_rcancel insertI1)
+    hence "card (carrier R) = card (f ` carrier R)"
+      by (metis card_image)
+    moreover have "f ` carrier R \<subseteq> carrier R" unfolding f_def
+      by (rule image_subsetI, simp add: ring.ring_simprules x_carr)
+    ultimately have "f ` carrier R = carrier R"
+      using card_subset_eq assms by metis
+    moreover have "\<one>\<^bsub>R\<^esub> \<in> carrier R" by simp
+    ultimately have "\<exists>y \<in> carrier R. f y = \<one>\<^bsub>R\<^esub>" 
+      by (metis image_iff)
+    then obtain y where y_carrier: "y \<in> carrier R" and y_left_inv: "y \<otimes>\<^bsub>R\<^esub> x = \<one>\<^bsub>R\<^esub>" 
+      using f_def by blast
+    hence  y_right_inv: "x \<otimes>\<^bsub>R\<^esub> y = \<one>\<^bsub>R\<^esub>"
+      by (metis DiffD1 a cring_simprules(14))
+    show "x \<in> Units R" using y_carrier y_left_inv y_right_inv
+      by (metis DiffD1 a divides_one factor_def)
+  qed
+  thus "?rhs \<subseteq> ?lhs" by auto
+qed
+
+text \<open>The following theorem can be found in Lidl and Niederreiter~\cite[Theorem 1.31]{lidl1986}.\<close>
+
+theorem finite_domains_are_fields:
+  assumes "domain R"
+  assumes "finite (carrier R)"
+  shows "finite_field R"
+proof -
+  interpret domain R using assms by auto
+  have "Units R = carrier R - {\<zero>\<^bsub>R\<^esub>}" using finite_domain_units[OF assms(2)] by simp
+  then have "field R" by (simp add: assms(1) field.intro field_axioms.intro)
+  thus ?thesis  using assms(2) finite_fieldI by auto 
+qed
+
+definition zfact_iso :: "nat \<Rightarrow> nat \<Rightarrow> int set" where
+  "zfact_iso p k = Idl\<^bsub>\<Z>\<^esub> {int p} +>\<^bsub>\<Z>\<^esub> (int k)"
+
+context
+  fixes n :: nat
+  assumes n_gt_0: "n > 0"
+begin
+
+private abbreviation I where "I \<equiv> Idl\<^bsub>\<Z>\<^esub> {int n}"
+
+private lemma ideal_I: "ideal I \<Z>"
+  by (simp add: int.genideal_ideal)
+
+lemma int_cosetI:
+  assumes "u mod (int n) = v mod (int n)"
+  shows "Idl\<^bsub>\<Z>\<^esub> {int n} +>\<^bsub>\<Z>\<^esub> u = Idl\<^bsub>\<Z>\<^esub> {int n} +>\<^bsub>\<Z>\<^esub> v"
+proof -
+  have "u - v \<in> I"
+    by (metis Idl_subset_eq_dvd assms int_Idl_subset_ideal mod_eq_dvd_iff)
+  thus ?thesis
+    using ideal_I int.quotient_eq_iff_same_a_r_cos by simp
+qed
+
+lemma zfact_iso_inj:
+  "inj_on (zfact_iso n) {..<n}"
+proof (rule inj_onI)
+  fix x y
+  assume a:"x \<in> {..<n}" "y \<in> {..<n}"
+  assume "zfact_iso n x = zfact_iso n y"
+  hence "I +>\<^bsub>\<Z>\<^esub> (int x) = I +>\<^bsub>\<Z>\<^esub> (int y)"
+    by (simp add:zfact_iso_def)
+  hence "int x - int y \<in> I"
+    by (subst int.quotient_eq_iff_same_a_r_cos[OF ideal_I], auto)
+  hence "int x mod int n = int y mod int n"
+    by (meson Idl_subset_eq_dvd int_Idl_subset_ideal mod_eq_dvd_iff)
+  thus "x = y"
+    using a by simp
+qed
+
+lemma zfact_iso_ran:
+  "zfact_iso n ` {..<n} = carrier (ZFact (int n))"
+proof -
+  have "zfact_iso n ` {..<n} \<subseteq> carrier (ZFact (int n))"
+    unfolding zfact_iso_def ZFact_def FactRing_simps 
+    using int.a_rcosetsI by auto
+  moreover have "\<And>x. x \<in> carrier (ZFact (int n)) \<Longrightarrow> x \<in> zfact_iso n ` {..<n}"
+  proof -
+    fix x
+    assume "x \<in> carrier (ZFact (int n))"
+    then obtain y where y_def: "x = I  +>\<^bsub>\<Z>\<^esub> y"
+      unfolding ZFact_def FactRing_simps by auto
+    obtain z where z_def: "(int z) mod (int n) = y mod (int n)" "z < n"
+      by (metis Euclidean_Division.pos_mod_sign mod_mod_trivial n_gt_0 nonneg_int_cases
+          of_nat_0_less_iff of_nat_mod unique_euclidean_semiring_numeral_class.pos_mod_bound)
+    have "x = I  +>\<^bsub>\<Z>\<^esub> y"
+      by (simp add:y_def)
+    also have "... = I +>\<^bsub>\<Z>\<^esub> (int z)"
+      by (intro int_cosetI, simp add:z_def)
+    also have "... = zfact_iso n z"
+      by (simp add:zfact_iso_def)
+    finally have "x = zfact_iso n z"
+      by simp
+    thus "x \<in> zfact_iso n ` {..<n}"
+      using z_def(2) by blast
+  qed
+  ultimately show ?thesis by auto
+qed
+
+lemma zfact_iso_bij:
+  "bij_betw (zfact_iso n) {..<n} (carrier (ZFact (int n)))"
+  using  bij_betw_def zfact_iso_inj zfact_iso_ran by blast
+
+lemma card_zfact_carr: "card (carrier (ZFact (int n))) = n"
+  using bij_betw_same_card[OF zfact_iso_bij] by simp
+
+lemma fin_zfact: "finite (carrier (ZFact (int n)))"
+  using card_zfact_carr n_gt_0 card_ge_0_finite by force
+
+end
+
+lemma zfact_prime_is_finite_field:
+  assumes "Factorial_Ring.prime p"
+  shows "finite_field (ZFact (int p))"
+proof -
+  have p_gt_0: "p > 0" using assms(1) prime_gt_0_nat by simp
+  have "Factorial_Ring.prime (int p)" 
+    using assms by simp
+  moreover have "finite (carrier (ZFact (int p)))" 
+    using fin_zfact[OF p_gt_0] by simp
+  ultimately show ?thesis
+    by (intro finite_domains_are_fields ZFact_prime_is_domain, auto)
+qed
 
 definition int_embed :: "_ \<Rightarrow> int \<Rightarrow> _"  where
   "int_embed R k = add_pow R k \<one>\<^bsub>R\<^esub>"
@@ -165,6 +379,17 @@ abbreviation char_subring where
 definition char where 
   "char R = card (char_subring R)"
 
+text \<open>This is a non-standard definition for the characteristic of a ring. 
+
+Commonly~\cite[Definition 1.43]{lidl1986} it is defined to be the smallest natural number $n$ such
+that n-times repeated addition of any number is zero. If no such number exists then it is defined 
+to be $0$. In the case of rings with unit elements --- not that the locale @{locale "ring"} requires
+unit elements --- the above definition can be simplified to the number of times the unit elements
+needs to be repeatedly added to reach $0$.
+
+The following three lemmas imply that the definition of the characteristic coincides with the latter
+definition.\<close>
+
 lemma (in ring) char_bound:
   assumes "x > 0"
   assumes "int_embed R (int x) = \<zero>"
@@ -207,6 +432,9 @@ lemma (in ring) embed_char_eq_0:
   "int_embed R (int (char R)) = \<zero>"
 proof (cases "finite (char_subring R)")
   case True
+  interpret h: ring_hom_ring "int_ring" R "(int_embed R)"
+    using int_embed_ring_hom by simp
+
   define A where "A = {0..int (char R)}"
   have "card (int_embed R ` A) \<le> card (char_subring R)"
     by (intro card_mono[OF True] image_subsetI, simp)
@@ -234,32 +462,6 @@ next
   hence "char R = 0" 
     unfolding char_def by simp
   then show ?thesis by (simp add:int_embed_zero)
-qed
-
-text \<open>This result can be found in \cite[Theorem 1.44]{lidl1986}.\<close>
-
-lemma (in domain) characteristic_is_prime:
-  assumes "char R > 0"
-  shows "prime (char R)"
-proof (rule ccontr)
-  have "\<not>(char R = 1)"
-    using embed_char_eq_0 int_embed_one by auto
-  hence "\<not>(char R dvd 1)" using assms(1) by simp
-  moreover assume "\<not>(prime (char R))"
-  hence "\<not>(irreducible (char R))"
-    using irreducible_imp_prime_elem_gcd prime_elem_nat_iff by blast
-  ultimately obtain p q where pq_def: "p * q = char R" "p > 1" "q > 1" 
-    using assms
-    unfolding Factorial_Ring.irreducible_def by auto
-  have "int_embed R p \<otimes> int_embed R q = \<zero>"
-    using embed_char_eq_0 pq_def 
-    by (subst int_embed_mult[symmetric]) (metis of_nat_mult)
-  hence "int_embed R p = \<zero> \<or> int_embed R q = \<zero>"
-    using integral int_embed_closed by simp
-  hence "p*q \<le> p \<or> p*q \<le> q"
-    using char_bound pq_def by auto
-  thus "False"
-    using pq_def(2,3) by simp
 qed
 
 lemma (in ring) embed_char_eq_0_iff:
@@ -310,6 +512,33 @@ next
   also have "n = 0 \<longleftrightarrow> char R dvd n" using False by simp
   finally show ?thesis by simp
 qed
+
+text \<open>This result can be found in \cite[Theorem 1.44]{lidl1986}.\<close>
+
+lemma (in domain) characteristic_is_prime:
+  assumes "char R > 0"
+  shows "prime (char R)"
+proof (rule ccontr)
+  have "\<not>(char R = 1)"
+    using embed_char_eq_0 int_embed_one by auto
+  hence "\<not>(char R dvd 1)" using assms(1) by simp
+  moreover assume "\<not>(prime (char R))"
+  hence "\<not>(irreducible (char R))"
+    using irreducible_imp_prime_elem_gcd prime_elem_nat_iff by blast
+  ultimately obtain p q where pq_def: "p * q = char R" "p > 1" "q > 1" 
+    using assms
+    unfolding Factorial_Ring.irreducible_def by auto
+  have "int_embed R p \<otimes> int_embed R q = \<zero>"
+    using embed_char_eq_0 pq_def 
+    by (subst int_embed_mult[symmetric]) (metis of_nat_mult)
+  hence "int_embed R p = \<zero> \<or> int_embed R q = \<zero>"
+    using integral int_embed_closed by simp
+  hence "p*q \<le> p \<or> p*q \<le> q"
+    using char_bound pq_def by auto
+  thus "False"
+    using pq_def(2,3) by simp
+qed
+
   
 lemma (in ring) char_ring_is_subring:
   "subring (char_subring R) R"
@@ -333,7 +562,9 @@ lemma image_set_eqI:
   shows  "f ` A = B"
   using assms by force
 
-lemma (in cring) binomial:
+text \<open>This is the binomial expansion theorem for commutative rings.\<close>
+
+lemma (in cring) binomial_expansion:
   fixes n :: nat
   assumes [simp]: "x \<in> carrier R" "y \<in> carrier R"
   shows "(x \<oplus> y) [^] n = (\<Oplus>k \<in> {..n}. int_embed R (n choose k) \<otimes> x [^] k \<otimes> y [^] (n-k))" 
@@ -452,7 +683,7 @@ proof -
   qed
 
   have "?lhs = (\<Oplus>k \<in> {..char R}. int_embed R (char R choose k) \<otimes> x [^] k \<otimes> y [^] (char R-k))"
-    using binomial[OF assms(2,3)] by simp
+    using binomial_expansion[OF assms(2,3)] by simp
   also have "... = (\<Oplus>k \<in> {0,char R}.int_embed R (char R choose k) \<otimes> x [^] k \<otimes> y [^] (char R-k))"
     using a int_embed_closed
     by (intro add.finprod_mono_neutral_cong_right, simp, simp_all)
@@ -460,6 +691,9 @@ proof -
     using int_embed_closed assms(1) by (simp add:int_embed_one a_comm)
   finally show ?thesis by simp
 qed
+
+text \<open>The following theorem is somtimes called Freshman's dream for obvious reasons,
+it can be found in Lidl and Niederreiter~\cite[Theorem 1.46]{lidl1986}.\<close>
 
 lemma (in domain) freshmans_dream_ext:
   assumes "char R > 0"
@@ -603,42 +837,6 @@ proof -
     unfolding char_def by simp
 qed
 
-
-text \<open>The size of a finite field must be a prime power.\<close>
-
-theorem (in finite_field) finite_field_order:
-  "\<exists>n. order R = char R ^ n \<and> n > 0"
-proof -
-  have a:"char R > 0" using finite_carr_imp_char_ge_0[OF finite_carrier] by simp
-  let ?CR = "char_subring R"
-
-  obtain v where v_def: "set v = carrier R"
-    using finite_carrier finite_list by auto
-  hence b:"set v \<subseteq> carrier R" by auto
-
-  have "carrier R = set v" using v_def by simp
-  also have "... \<subseteq> Span ?CR v"
-    using Span_base_incl[OF char_ring_is_subfield[OF a] b] by simp
-  finally have "carrier R \<subseteq> Span ?CR v" by simp
-  moreover have "Span ?CR v \<subseteq> carrier R"
-    using int_embed_closed v_def by (intro Span_in_carrier, auto)
-  ultimately have Span_v: "Span ?CR v = carrier R" by simp
-
-  obtain w where w_def: "set w \<subseteq> carrier R" "independent ?CR w" "Span ?CR v = Span ?CR w"
-    using b filter_base[OF char_ring_is_subfield[OF a]] by metis
-
-  have Span_w: "Span ?CR w = carrier R"
-    using w_def(3) Span_v by simp
-
-  hence "order R = card (Span ?CR w)" by (simp add:order_def)
-  also have "... = card ?CR^length w"
-    by (intro card_span char_ring_is_subfield[OF a] w_def(1,2))
-  finally have c:"order R = char R^(length w)" by (simp add:char_def)
-  have "length w > 0"
-    using finite_field_min_order c by auto
-  thus ?thesis using c by auto
-qed
-
 lemma (in ring) char_consistent:
   assumes "subring H R"
   shows "char (R \<lparr> carrier := H \<rparr>) = char R"
@@ -687,8 +885,10 @@ proof -
     by simp
 qed
 
-
 definition char_iso :: "_ \<Rightarrow> int set \<Rightarrow> 'a" where "char_iso R x = the_elem (int_embed R ` x)"
+
+text \<open>The function @{term "char_iso R"} denotes the isomorphism between @{term "ZFact (char R)"} and
+the characteristic subring.\<close>
 
 lemma (in ring) char_iso:
   "char_iso R \<in> ring_iso (ZFact (int (char R))) (R\<lparr>carrier := char_subring R\<rparr>)"
@@ -709,6 +909,42 @@ proof -
   show  "?thesis"
     unfolding char_iso_def ZFact_def a[symmetric]
     by (intro h.FactRing_iso_set_aux)
+qed
+
+text \<open>The size of a finite field must be a prime power.
+This can be found in Ireland and Rosen~\cite[Theorem 7.1.3]{ireland1982}.\<close>
+
+theorem (in finite_field) finite_field_order:
+  "\<exists>n. order R = char R ^ n \<and> n > 0"
+proof -
+  have a:"char R > 0" using finite_carr_imp_char_ge_0[OF finite_carrier] by simp
+  let ?CR = "char_subring R"
+
+  obtain v where v_def: "set v = carrier R"
+    using finite_carrier finite_list by auto
+  hence b:"set v \<subseteq> carrier R" by auto
+
+  have "carrier R = set v" using v_def by simp
+  also have "... \<subseteq> Span ?CR v"
+    using Span_base_incl[OF char_ring_is_subfield[OF a] b] by simp
+  finally have "carrier R \<subseteq> Span ?CR v" by simp
+  moreover have "Span ?CR v \<subseteq> carrier R"
+    using int_embed_closed v_def by (intro Span_in_carrier, auto)
+  ultimately have Span_v: "Span ?CR v = carrier R" by simp
+
+  obtain w where w_def: "set w \<subseteq> carrier R" "independent ?CR w" "Span ?CR v = Span ?CR w"
+    using b filter_base[OF char_ring_is_subfield[OF a]] by metis
+
+  have Span_w: "Span ?CR w = carrier R"
+    using w_def(3) Span_v by simp
+
+  hence "order R = card (Span ?CR w)" by (simp add:order_def)
+  also have "... = card ?CR^length w"
+    by (intro card_span char_ring_is_subfield[OF a] w_def(1,2))
+  finally have c:"order R = char R^(length w)" by (simp add:char_def)
+  have "length w > 0"
+    using finite_field_min_order c by auto
+  thus ?thesis using c by auto
 qed
 
 end

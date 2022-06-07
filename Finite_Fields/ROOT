@@ -5,14 +5,14 @@ session Finite_Fields (AFP) = "HOL-Algebra" +
   sessions
     Dirichlet_Series
   theories 
-    Finite_Fields_Preliminary_Results
     Card_Irreducible_Polynomials
-    Formal_Polynomial_Derivatives
     Card_Irreducible_Polynomials_Aux
+    Finite_Fields_Factorization_Ext
+    Finite_Fields_Isomorphic
+    Finite_Fields_Preliminary_Results
+    Formal_Polynomial_Derivatives
     Monic_Polynomial_Factorization
     Ring_Characteristic
-    Finite_Field_Locale
-    Uniqueness
   document_files
     "root.tex"
     "root.bib"
