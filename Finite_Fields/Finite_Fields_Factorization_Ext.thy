@@ -87,10 +87,14 @@ qed
 lemma factor_mset_set:
   assumes "a \<in> carrier G"
   assumes "x \<in># factor_mset G a" 
-  obtains y where "y \<in> carrier G" "irreducible G y" "assocs G y = x" 
+  obtains y where 
+    "y \<in> carrier G" 
+    "irreducible G y" 
+    "assocs G y = x" 
 proof -
   obtain as where as_def: 
-    "factor_mset G a = fmset G as \<and> wfactors G as a \<and> set as \<subseteq> carrier G"
+    "factor_mset G a = fmset G as" 
+    "wfactors G as a" "set as \<subseteq> carrier G"
     using factor_mset_aux assms by blast
   hence "x \<in># fmset G as"
     using assms by simp
@@ -100,7 +104,8 @@ proof -
     by auto
   moreover have "y \<in> carrier G \<and> irreducible G y" 
     if "y \<in> set as" for y
-    using as_def that wfactors_def by (simp add: wfactors_def) auto
+    using as_def that wfactors_def
+    by (simp add: wfactors_def) auto
   ultimately show ?thesis
     using that by blast
 qed
@@ -110,15 +115,19 @@ lemma factor_mset_mult:
   shows "factor_mset G (a \<otimes> b) = factor_mset G a + factor_mset G b"
 proof -
   obtain as where as_def: 
-    "factor_mset G a = fmset G as \<and> wfactors G as a \<and> set as \<subseteq> carrier G"
+    "factor_mset G a = fmset G as" 
+    "wfactors G as a" "set as \<subseteq> carrier G"
     using factor_mset_aux assms by blast
   obtain bs where bs_def: 
-    "factor_mset G b = fmset G bs \<and> wfactors G bs b \<and> set bs \<subseteq> carrier G"
+    "factor_mset G b = fmset G bs" 
+    "wfactors G bs b" "set bs \<subseteq> carrier G"
     using factor_mset_aux assms(2) by blast
   have "a \<otimes> b \<in> carrier G" using assms by auto
   then obtain cs where cs_def:
-    "factor_mset G (a \<otimes> b) = fmset G cs \<and> wfactors G cs (a \<otimes> b) \<and> set cs \<subseteq> carrier G"
-    using factor_mset_aux assms  by blast
+    "factor_mset G (a \<otimes> b) = fmset G cs" 
+    "wfactors G cs (a \<otimes> b)" 
+    "set cs \<subseteq> carrier G"
+    using factor_mset_aux assms by blast
   have "fmset G cs = fmset G as + fmset G bs"
     using as_def bs_def cs_def assms 
     by (intro  mult_wfactors_fmset[where a="a" and b="b"]) auto
@@ -154,10 +163,12 @@ lemma factor_mset_divides:
   shows "a divides b \<longleftrightarrow> factor_mset G a \<subseteq># factor_mset G b"
 proof -
   obtain as where as_def: 
-    "factor_mset G a = fmset G as \<and> wfactors G as a \<and> set as \<subseteq> carrier G"
+    "factor_mset G a = fmset G as" 
+    "wfactors G as a" "set as \<subseteq> carrier G"
     using factor_mset_aux assms by blast
   obtain bs where bs_def: 
-    "factor_mset G b = fmset G bs \<and> wfactors G bs b \<and> set bs \<subseteq> carrier G"
+    "factor_mset G b = fmset G bs" 
+    "wfactors G bs b" "set bs \<subseteq> carrier G"
     using factor_mset_aux assms(2) by blast
   hence "a divides b \<longleftrightarrow> fmset G as \<subseteq># fmset G bs"
     using as_def bs_def assms
@@ -264,7 +275,8 @@ proof -
     using factor_mset_count[OF assms(3,1,2)] by simp
   also have "... \<longleftrightarrow> replicate_mset k (assocs G d) \<subseteq># factor_mset G a"
     by (subst count_le_replicate_mset_subset_eq, simp) 
-  also have "... \<longleftrightarrow> repeat_mset k (factor_mset G d) \<subseteq># factor_mset G a" 
+  also have "... \<longleftrightarrow>
+    repeat_mset k (factor_mset G d) \<subseteq># factor_mset G a" 
     by (subst factor_mset_irred[OF assms(1,2)], simp)
   also have "... \<longleftrightarrow> factor_mset G (d [^]\<^bsub>G\<^esub> k) \<subseteq># factor_mset G a" 
     by (subst factor_mset_pow[OF assms(1)], simp)
@@ -311,11 +323,11 @@ proof -
   also have "... = 
     (\<Sum>x\<in>set_mset R. repeat_mset (count R x) (factor_mset G x))"
     using assms(2) by (intro sum.cong, auto simp add:factor_mset_pow)
-  also have "... = 
-    (\<Sum>x\<in>set_mset R. repeat_mset (count R x) (image_mset (assocs G) {#x#}))"
+  also have "... = (\<Sum>x\<in>set_mset R. 
+    repeat_mset (count R x) (image_mset (assocs G) {#x#}))"
     using assms(2) b by (intro sum.cong, auto simp add:factor_mset_irred)
-  also have "... = 
-    (\<Sum>x\<in>set_mset R. image_mset (assocs G) (replicate_mset (count R x) x))"
+  also have "... = (\<Sum>x\<in>set_mset R. 
+    image_mset (assocs G) (replicate_mset (count R x) x))"
     by simp
   also have "... = image_mset (assocs G) 
     (\<Sum>x\<in>set_mset R. (replicate_mset (count R x) x))"
@@ -338,22 +350,29 @@ lemma divides_iff_mult_mono:
   shows "a divides b"
 proof -
   have "count (factor_mset G a) d \<le> count (factor_mset G b) d" for d
-  proof (cases "\<exists>y. irreducible G y \<and> y \<in> carrier G \<and> d = assocs G y")
+  proof (cases "\<exists>y \<in> carrier G. irreducible G y \<and> d = assocs G y")
     case True
-    then obtain y where y_def: "irreducible G y" "y \<in> carrier G" "d = assocs G y" by blast
+    then obtain y where y_def: 
+      "irreducible G y" "y \<in> carrier G" "d = assocs G y"
+      by blast
     then obtain z where z_def: "z \<in> R" "y \<sim> z"
       using assms(3) unfolding canonical_irreducibles_def by metis
     have z_more: "irreducible G z" "z \<in> carrier G"
-      using z_def(1) assms(3) unfolding canonical_irreducibles_def by auto
+      using z_def(1) assms(3)
+      unfolding canonical_irreducibles_def by auto
     have "y \<in> assocs G z" using z_def(2) z_more(2) y_def(2) 
       by (simp add: closure_ofI2)
-    hence d_def: "d = assocs G z" using y_def(2,3) z_more(2)  assocs_repr_independence by blast
+    hence d_def: "d = assocs G z"
+      using y_def(2,3) z_more(2) assocs_repr_independence
+      by blast
     have "count (factor_mset G a) d = multiplicity G z a"
-      unfolding d_def by (intro factor_mset_count[OF assms(1) z_more(2,1)])
+      unfolding d_def
+      by (intro factor_mset_count[OF assms(1) z_more(2,1)])
     also have "... \<le> multiplicity G z b"
       using assms(4) z_def(1) by simp
     also have "... = count (factor_mset G b) d"
-      unfolding d_def by (intro factor_mset_count[symmetric, OF assms(2) z_more(2,1)])
+      unfolding d_def
+      by (intro factor_mset_count[symmetric, OF assms(2) z_more(2,1)])
     finally show ?thesis by simp 
   next
     case False
@@ -398,7 +417,8 @@ lemma split_factors:
   assumes "a \<in> carrier G"
   shows 
     "finite {d. d \<in> R \<and> multiplicity G d a > 0}"
-    "a \<sim> (\<Otimes>d\<in>{d. d \<in> R \<and> multiplicity G d a > 0}. d [^] multiplicity G d a)" (is "a \<sim> ?rhs")
+    "a \<sim> (\<Otimes>d\<in>{d. d \<in> R \<and> multiplicity G d a > 0}. 
+          d [^] multiplicity G d a)" (is "a \<sim> ?rhs")
 proof -
   have r_1: "R \<subseteq> {x. x \<in> carrier G \<and> irreducible G x}" 
     using assms(1) unfolding canonical_irreducibles_def by simp
@@ -409,12 +429,15 @@ proof -
     using r_1 r_2 assocs_eqD by (intro inj_onI, blast) 
   
   define R' where
-    "R' = (\<Sum>d\<in> {d. d \<in> R \<and> multiplicity G d a > 0}. replicate_mset (multiplicity G d a) d)"
+    "R' = (\<Sum>d\<in> {d. d \<in> R \<and> multiplicity G d a > 0}.
+    replicate_mset (multiplicity G d a) d)"
 
-  have "\<And>x. x \<in> R \<and> 0 < multiplicity G x a \<Longrightarrow> count (factor_mset G a) (assocs G x) > 0"
-    using assms r_1 r_2 
+  have "count (factor_mset G a) (assocs G x) > 0" 
+    if "x \<in> R" "0 < multiplicity G x a" for x
+    using assms r_1 r_2 that
     by (subst factor_mset_count[OF assms(2)]) auto
-  hence "assocs G ` {d \<in> R. 0 < multiplicity G d a} \<subseteq> set_mset (factor_mset G a)"
+  hence "assocs G ` {d \<in> R. 0 < multiplicity G d a} 
+    \<subseteq> set_mset (factor_mset G a)"
     by (intro image_subsetI, simp)
   hence a:"finite (assocs G ` {d \<in> R. 0 < multiplicity G d a})"
     using finite_subset by auto
@@ -423,20 +446,24 @@ proof -
     using assocs_inj inj_on_subset[OF assocs_inj]
     by (intro finite_imageD[OF a], simp)
 
-  hence count_R': "count R' d = (if d \<in> R then multiplicity G d a else 0)" for d
+  hence count_R': 
+    "count R' d = (if d \<in> R then multiplicity G d a else 0)"
+    for d
     by (auto simp add:R'_def count_sum) 
 
   have set_R': "set_mset R' = {d \<in> R. 0 < multiplicity G d a}"
     unfolding set_mset_def using count_R' by auto
 
-  have "count (image_mset (assocs G) R') x = count (factor_mset G a) x" for x
+  have "count (image_mset (assocs G) R') x = 
+    count (factor_mset G a) x" for x
   proof (cases "\<exists>x'. x' \<in> R \<and> x = assocs G x'")
     case True
     then obtain x' where x'_def: "x' \<in> R" "x = assocs G x'"
       by blast
     have "count (image_mset (assocs G) R') x = count R' x'"
       using assocs_inj inj_on_subset[OF assocs_inj] x'_def
-      by (subst x'_def(2), subst count_image_mset_inj[OF assocs_inj], auto simp add:set_R') 
+      by (subst x'_def(2), subst count_image_mset_inj[OF assocs_inj])
+        (auto simp:set_R') 
     also have "... = multiplicity G x' a"
       using count_R' x'_def by simp
     also have "... = count (factor_mset G a) (assocs G x')"
@@ -451,7 +478,8 @@ proof -
       if a1: "z \<in> carrier G" and a2: "irreducible G z" for z
     proof -
       obtain v where v_def: "v \<in> R" "z \<sim> v"
-        using a1 a2 assms(1) unfolding canonical_irreducibles_def by auto
+        using a1 a2 assms(1)
+        unfolding canonical_irreducibles_def by auto
       hence "z \<in> assocs G v"
         using a1 r_1 v_def(1) by (simp add: closure_ofI2)
       hence "assocs G z = assocs G v"

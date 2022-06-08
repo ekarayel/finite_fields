@@ -3,7 +3,11 @@ section \<open>Factorization into Monic Polynomials\label{sec:monic}\<close>
 theory Monic_Polynomial_Factorization
 imports
   Finite_Fields_Factorization_Ext
+  Formal_Polynomial_Derivatives
 begin
+
+hide_const Factorial_Ring.multiplicity
+hide_const Factorial_Ring.irreducible
 
 lemma (in domain) finprod_mult_of:
   assumes "finite A"
@@ -49,22 +53,47 @@ lemma K_subring: "subring K R"
 
 abbreviation P where "P \<equiv> K[X]"
 
-lemmas poly_mult_lead_coeff = poly_mult_lead_coeff[OF K_subring]
-lemmas degree_add_distinct = degree_add_distinct[OF K_subring]
-lemmas coeff_add = coeff_add[OF K_subring]
-lemmas var_closed = var_closed[OF K_subring]
-lemmas degree_prod = degree_prod[OF _ K_subring]
-lemmas degree_pow = degree_pow[OF K_subring]
-lemmas pirreducible_degree = pirreducible_degree[OF polynomial_ring_assms]
-lemmas degree_one_imp_pirreducible = degree_one_imp_pirreducible[OF polynomial_ring_assms]
-lemmas var_pow_closed = var_pow_closed[OF K_subring]
-lemmas var_pow_carr = var_pow_carr[OF K_subring]
-lemmas univ_poly_a_inv_degree = univ_poly_a_inv_degree[OF K_subring]
-lemmas var_pow_degree = var_pow_degree[OF K_subring]
-lemmas pdivides_zero = pdivides_zero[OF K_subring]
-lemmas pdivides_imp_degree_le = pdivides_imp_degree_le[OF K_subring]
-lemmas var_carr = var_carr[OF K_subring]
-lemmas rupture_eq_0_iff = rupture_eq_0_iff[OF polynomial_ring_assms]
+text \<open>This locale is used to specialize the following lemmas for a fixed coefficient ring.
+It can be introduced in a context as an intepretation to be able to use the following specialized
+lemmas. Because it is not (and should not) introduced as a sublocale it has no lasting effect
+for the field locale itself.\<close> 
+
+lemmas
+    poly_mult_lead_coeff = poly_mult_lead_coeff[OF K_subring]
+and degree_add_distinct = degree_add_distinct[OF K_subring]
+and coeff_add = coeff_add[OF K_subring]
+and var_closed = var_closed[OF K_subring]
+and degree_prod = degree_prod[OF _ K_subring]
+and degree_pow = degree_pow[OF K_subring]
+and pirreducible_degree = pirreducible_degree[OF polynomial_ring_assms]
+and degree_one_imp_pirreducible = 
+    degree_one_imp_pirreducible[OF polynomial_ring_assms]
+and var_pow_closed = var_pow_closed[OF K_subring]
+and var_pow_carr = var_pow_carr[OF K_subring]
+and univ_poly_a_inv_degree = univ_poly_a_inv_degree[OF K_subring]
+and var_pow_degree = var_pow_degree[OF K_subring]
+and pdivides_zero = pdivides_zero[OF K_subring]
+and pdivides_imp_degree_le = pdivides_imp_degree_le[OF K_subring]
+and var_carr = var_carr[OF K_subring]
+and rupture_eq_0_iff = rupture_eq_0_iff[OF polynomial_ring_assms]
+and rupture_is_field_iff_pirreducible =
+    rupture_is_field_iff_pirreducible[OF polynomial_ring_assms]
+and rupture_surj_hom = rupture_surj_hom[OF K_subring]
+and canonical_embedding_ring_hom =
+    canonical_embedding_ring_hom[OF K_subring]
+and rupture_surj_norm_is_hom = rupture_surj_norm_is_hom[OF K_subring]
+and rupture_surj_as_eval = rupture_surj_as_eval[OF K_subring]
+and eval_cring_hom = eval_cring_hom[OF K_subring]
+and coeff_range = coeff_range[OF K_subring]
+and finite_poly = finite_poly[OF K_subring]
+and int_embed_consistent_with_poly_of_const =
+    int_embed_consistent_with_poly_of_const[OF K_subring]
+and pderiv_var_pow = pderiv_var_pow[OF _ K_subring]
+and pderiv_add = pderiv_add[OF K_subring]
+and pderiv_inv = pderiv_inv[OF K_subring]
+and pderiv_mult = pderiv_mult[OF K_subring]
+and pderiv_pow = pderiv_pow[OF _ K_subring]
+and pderiv_carr = pderiv_carr[OF K_subring]
 
 sublocale p:principal_domain "poly_ring R"
   by (simp add: carrier_is_subfield univ_poly_is_principal)
@@ -82,11 +111,15 @@ lemma pdivides_mult_r:
   assumes "a \<in> carrier (mult_of P)" 
   assumes "b \<in> carrier (mult_of P)" 
   assumes "c \<in> carrier (mult_of P)"
-  shows "a \<otimes>\<^bsub>P\<^esub> c pdivides\<^bsub>R\<^esub> b \<otimes>\<^bsub>P\<^esub> c \<longleftrightarrow> a pdivides\<^bsub>R\<^esub> b" (is "?lhs \<longleftrightarrow> ?rhs")
+  shows "a \<otimes>\<^bsub>P\<^esub> c pdivides b \<otimes>\<^bsub>P\<^esub> c \<longleftrightarrow> a pdivides b" 
+    (is "?lhs \<longleftrightarrow> ?rhs")
 proof -
-  have a:"b \<otimes>\<^bsub>P\<^esub> c \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}" using assms p.mult_of.m_closed by force
-  have b:"a \<otimes>\<^bsub>P\<^esub> c \<in> carrier P" using assms by simp
-  have c:"b \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}" using assms p.mult_of.m_closed by force
+  have a:"b \<otimes>\<^bsub>P\<^esub> c \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}"
+    using assms p.mult_of.m_closed by force
+  have b:"a \<otimes>\<^bsub>P\<^esub> c \<in> carrier P"
+    using assms by simp
+  have c:"b \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}"
+    using assms p.mult_of.m_closed by force
   have d:"a \<in> carrier P" using assms by simp
   have "?lhs \<longleftrightarrow> a \<otimes>\<^bsub>P\<^esub> c divides\<^bsub>mult_of P\<^esub> b \<otimes>\<^bsub>P\<^esub> c"
     unfolding pdivides_def using p.divides_imp_divides_mult a b
@@ -126,8 +159,9 @@ lemma lead_coeff_mult:
   assumes "f \<in> carrier (mult_of P)"
   assumes "g \<in> carrier (mult_of P)"
   shows "lead_coeff (f \<otimes>\<^bsub>P\<^esub> g) = lead_coeff f \<otimes> lead_coeff g"
-  unfolding univ_poly_mult using assms univ_poly_carrier[where R="R" and K="carrier R"]
-  by (subst poly_mult_lead_coeff)  (simp_all add:univ_poly_zero)
+  unfolding univ_poly_mult using assms 
+  using univ_poly_carrier[where R="R" and K="carrier R"]
+  by (subst poly_mult_lead_coeff) (simp_all add:univ_poly_zero)
 
 lemma monic_poly_carr:
   assumes "monic_poly R f"
@@ -141,7 +175,9 @@ lemma monic_poly_add_distinct:
 proof (cases "g \<noteq> \<zero>\<^bsub>P\<^esub>")
   case True
   define n where "n = degree f"
-  have "f \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}" using assms(1) univ_poly_zero unfolding monic_poly_def by auto
+  have "f \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}"
+    using assms(1) univ_poly_zero
+    unfolding monic_poly_def by auto
   hence "degree (f \<oplus>\<^bsub>P\<^esub> g) = max (degree f) (degree g)"
     using assms(2,3) True
     by (subst degree_add_distinct, simp_all)
@@ -170,7 +206,8 @@ proof (cases "g \<noteq> \<zero>\<^bsub>P\<^esub>")
   also have "... = lead_coeff f \<oplus> coeff g n"
     using c unfolding n_def by (cases "f", auto)
   also have "... = \<one> \<oplus> \<zero>"
-    using assms(1) unfolding monic_poly_def subst coeff_length[OF d] by simp
+    using assms(1) unfolding monic_poly_def 
+    unfolding subst coeff_length[OF d] by simp
   also have "... = \<one>"
     by simp
   finally have "lead_coeff (f \<oplus>\<^bsub>P\<^esub> g) = \<one>" by simp
@@ -203,7 +240,8 @@ qed
 lemma monic_poly_carr_2:
   assumes "monic_poly R f"
   shows "f \<in> carrier (mult_of P)"
-  using assms unfolding monic_poly_def by (simp add:univ_poly_zero)
+  using assms unfolding monic_poly_def
+  by (simp add:univ_poly_zero)
 
 lemma monic_poly_mult:
   assumes "monic_poly R f"
@@ -225,7 +263,8 @@ qed
 lemma monic_poly_pow:
   assumes "monic_poly R f"
   shows "monic_poly R (f [^]\<^bsub>P\<^esub> (n::nat))"
-  using assms by (induction n, auto simp:monic_poly_one monic_poly_mult)
+  using assms monic_poly_one monic_poly_mult
+  by (induction n, auto)
 
 lemma monic_poly_prod:
   assumes "finite A"
@@ -254,7 +293,8 @@ lemma monic_poly_not_assoc:
   shows "f = g"
 proof -
   obtain u where u_def: "f = g \<otimes>\<^bsub>P\<^esub> u" "u \<in> Units (mult_of P)"
-    using p.mult_of.associatedD2 assms monic_poly_carr_2 by blast
+    using p.mult_of.associatedD2 assms monic_poly_carr_2
+    by blast
 
   hence "u \<in> Units P" by simp
   then obtain v where v_def: "u = [v]" "v \<noteq> \<zero>\<^bsub>R\<^esub>" "v \<in> carrier R"
@@ -297,7 +337,8 @@ proof -
     using lx_unit by simp
 
   have "z \<in> carrier P"
-    using lx_inv_carr poly_of_const_over_carrier unfolding z_def by auto
+    using lx_inv_carr poly_of_const_over_carrier
+    unfolding z_def by auto
   moreover have "z \<noteq> \<zero>\<^bsub>P\<^esub>" 
     using lx_inv_ne_0
     by (simp add:z_def poly_of_const_def univ_poly_zero)
@@ -317,7 +358,8 @@ proof -
     unfolding y_def using x_carr z_carr lx_inv_ne_0 lx_unit
     by (simp add: lead_coeff_mult z_def lead_coeff_poly_of_const)
   hence "monic_poly R y"
-    using y_carr unfolding monic_poly_def by (simp add:univ_poly_zero) 
+    using y_carr unfolding monic_poly_def
+    by (simp add:univ_poly_zero) 
   ultimately have "monic_irreducible_poly R y"
     using p.irreducible_mult_imp_irreducible y_carr
     by (simp add:monic_irreducible_poly_def ring_irreducible_def)
@@ -332,8 +374,10 @@ lemma monic_polys_are_canonical_irreducibles:
   "canonical_irreducibles (mult_of P) {d. monic_irreducible_poly R d}"
   (is "canonical_irreducibles (mult_of P) ?S")
 proof -
-  have sp_1: "?S \<subseteq> {x \<in> carrier (mult_of P). irreducible (mult_of P) x}" 
-    unfolding monic_irreducible_poly_def ring_irreducible_def using monic_poly_carr
+  have sp_1: 
+    "?S \<subseteq> {x \<in> carrier (mult_of P). irreducible (mult_of P) x}" 
+    unfolding monic_irreducible_poly_def ring_irreducible_def
+    using monic_poly_carr
     by (intro subsetI, simp add: p.irreducible_imp_irreducible_mult) 
   have sp_2: "x \<in> ?S \<Longrightarrow> y \<in> ?S \<Longrightarrow> x \<sim>\<^bsub>(mult_of P)\<^esub> y \<Longrightarrow> x = y" for x y 
     unfolding monic_irreducible_poly_def
@@ -350,9 +394,10 @@ qed
 lemma
   assumes "monic_poly R a"
   shows factor_monic_poly: 
-    "a = (\<Otimes>\<^bsub>P\<^esub>d\<in>{d. monic_irreducible_poly R d \<and> pmult d a > 0}. d [^]\<^bsub>P\<^esub> pmult d a)"
-    (is "?lhs = ?rhs")
-    and factor_monic_poly_fin: "finite {d. monic_irreducible_poly R d \<and> pmult d a > 0}" 
+    "a = (\<Otimes>\<^bsub>P\<^esub>d\<in>{d. monic_irreducible_poly R d \<and> pmult d a > 0}. 
+      d [^]\<^bsub>P\<^esub> pmult d a)" (is "?lhs = ?rhs")
+    and factor_monic_poly_fin: 
+      "finite {d. monic_irreducible_poly R d \<and> pmult d a > 0}" 
 proof -
   let ?S = "{d. monic_irreducible_poly R d}"
   let ?T = "{d. monic_irreducible_poly R d \<and> pmult d a > 0}"
@@ -361,28 +406,36 @@ proof -
     using assms monic_poly_carr_2
     unfolding monic_irreducible_poly_def by simp
 
-  have b_1:"monic_irreducible_poly R x \<Longrightarrow> x \<in> carrier (mult_of P)" for x 
-    unfolding monic_irreducible_poly_def using monic_poly_carr_2 by simp
-  have b_2:"monic_irreducible_poly R x \<Longrightarrow> irreducible (mult_of P) x" for x
-    unfolding monic_irreducible_poly_def ring_irreducible_def 
+  have b_1: "x \<in> carrier (mult_of P)" 
+    if "monic_irreducible_poly R x" for x 
+    using that monic_poly_carr_2
+    unfolding monic_irreducible_poly_def by simp
+  have b_2:"irreducible (mult_of P) x"
+    if "monic_irreducible_poly R x" for x
+    using that unfolding monic_irreducible_poly_def ring_irreducible_def 
     by (simp add: monic_poly_carr p.irreducible_imp_irreducible_mult)
-  have b_3:"monic_irreducible_poly R x \<Longrightarrow> x \<in> carrier P" for x 
-    unfolding monic_irreducible_poly_def using monic_poly_carr by simp
+  have b_3:"x \<in> carrier P"
+    if "monic_irreducible_poly R x" for x
+    using that monic_poly_carr
+    unfolding monic_irreducible_poly_def
+    by simp
 
   have a_carr: "a \<in> carrier P - {\<zero>\<^bsub>P\<^esub>}" 
     using sp_4 by simp
 
-  have "?T = {d. monic_irreducible_poly R d \<and> multiplicity (mult_of P) d a > 0}" 
-    by ( simp add:pmult_def)
+  have "?T = {d. monic_irreducible_poly R d
+    \<and> multiplicity (mult_of P) d a > 0}" 
+    by (simp add:pmult_def)
   also have "... = {d \<in> ?S. multiplicity  (mult_of P) d a > 0}"
     using p.mult_of.multiplicity_gt_0_iff[OF b_1 b_2 sp_4]
     by (intro order_antisym subsetI, auto)
-
-  finally have t:"?T = {d \<in> ?S. multiplicity (mult_of P) d a > 0}" by simp
+  finally have t:"?T = {d \<in> ?S. multiplicity (mult_of P) d a > 0}"
+    by simp
 
   show fin_T: "finite ?T"
     unfolding t
-    using p.mult_of.split_factors(1)[OF monic_polys_are_canonical_irreducibles] sp_4 by auto
+    using p.mult_of.split_factors(1)[OF monic_polys_are_canonical_irreducibles]
+    using sp_4 by auto
 
   have a:"x [^]\<^bsub>P\<^esub> (n::nat) \<in> carrier (mult_of P)" 
     if "monic_irreducible_poly R x" for x n

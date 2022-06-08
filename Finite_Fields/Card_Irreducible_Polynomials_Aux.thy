@@ -9,8 +9,6 @@ imports
   Monic_Polynomial_Factorization
 begin
 
-hide_const Factorial_Ring.irreducible
-
 lemma (in domain)
   assumes "subfield K R"
   assumes "f \<in> carrier (K[X])" "degree f > 0"
@@ -390,7 +388,7 @@ proof -
   define K where "K = Rupt\<^bsub>R\<^esub> (carrier R) f"
   have field_K: "field K"
     using assms(2) unfolding K_def monic_irreducible_poly_def monic_poly_def
-    by (subst rupture_is_field_iff_pirreducible[OF carrier_is_subfield])  auto
+    by (subst rupture_is_field_iff_pirreducible)  auto
   have a: "order K = order R^degree f" 
     using rupture_order[OF carrier_is_subfield] f_carr f_deg
     unfolding K_def order_def by simp
@@ -402,16 +400,20 @@ proof -
     using a f_deg finite_field_min_order unfolding order_def by simp
   hence d: "finite (carrier K)" using card_ge_0_finite by auto
   interpret f: finite_field "K" using field_K d by (intro finite_fieldI, simp_all)
+  interpret fp: polynomial_ring "K" "(carrier K)"
+    unfolding polynomial_ring_def polynomial_ring_axioms_def
+    using f.field_axioms f.carrier_is_subfield by simp
+
   define \<phi> where "\<phi> = rupture_surj (carrier R) f"
   interpret h:ring_hom_ring "P" "K" "\<phi>"
-    unfolding K_def \<phi>_def using f_carr rupture_surj_hom[OF carrier_is_subring] by simp
+    unfolding K_def \<phi>_def using f_carr rupture_surj_hom by simp
 
   have embed_inj: "inj_on (\<phi> \<circ> poly_of_const) (carrier R)"
     unfolding \<phi>_def
     using embed_inj[OF carrier_is_subfield f_carr f_deg] by simp
 
   interpret r:ring_hom_ring "R" "P" "poly_of_const"
-    using canonical_embedding_ring_hom[OF carrier_is_subring] by simp
+    using canonical_embedding_ring_hom by simp
 
   obtain rn where "order R = char K^rn" "rn > 0"
     unfolding char_K using finite_field_order by auto
@@ -452,10 +454,10 @@ proof -
     obtain x where x_def: "x \<in> carrier K" "d = [\<one>\<^bsub>K\<^esub>, \<ominus>\<^bsub>K\<^esub> x]"
       using f.degree_one_monic_poly z1 by auto
     interpret x:ring_hom_cring "poly_ring K" "K" "(\<lambda>p. f.eval p x)"
-      by (intro f.eval_cring_hom[OF f.carrier_is_subring] x_def)
+      by (intro fp.eval_cring_hom x_def)
     have "ring.eval K ?g1 x = \<zero>\<^bsub>K\<^esub>"
       unfolding gauss_poly_def a_minus_def
-      using f.var_closed[OF f.carrier_is_subring] f.eval_var x_def c
+      using fp.var_closed f.eval_var x_def c
       by (simp, algebra)
     hence "f.is_root ?g1 x"
       using x_def f.gauss_poly_not_zero[OF o1]
@@ -487,27 +489,27 @@ proof -
         using f.degree_one_monic_poly z1 by auto
 
       interpret x:ring_hom_cring "poly_ring K" "K" "(\<lambda>p. f.eval p y)"
-        by (intro f.eval_cring_hom[OF f.carrier_is_subring] y_def)
+        by (intro fp.eval_cring_hom y_def)
       obtain x where x_def: "x \<in> carrier P" "y = \<phi> x"
         using y_def unfolding \<phi>_def K_def rupture_def FactRing_def A_RCOSETS_def' by auto
       let ?\<tau>  = "\<lambda>i. poly_of_const (coeff x i)"
       have test: "?\<tau> i \<in> carrier P" for i
-        by (intro r.hom_closed coeff_range carrier_is_subring x_def)
+        by (intro r.hom_closed coeff_range x_def)
       have test_2: "coeff x i \<in> carrier R" for i 
-        by (intro coeff_range carrier_is_subring x_def)
+        by (intro coeff_range x_def)
 
       have x_coeff_carr: "i \<in> set x \<Longrightarrow> i \<in> carrier R"  for i
         using x_def(1) by (auto simp add:univ_poly_carrier[symmetric] polynomial_def)
 
       have a:"map (\<phi> \<circ> poly_of_const) x \<in> carrier (poly_ring K)"
-        using rupture_surj_norm_is_hom[OF carrier_is_subring f_carr] 
+        using rupture_surj_norm_is_hom[OF f_carr] 
         using domain_axioms f.domain_axioms embed_inj
-        apply (intro carrier_hom'[OF  x_def(1)])
-        by (simp add:\<phi>_def K_def)+
+        by (intro carrier_hom'[OF  x_def(1)])
+         (simp_all add:\<phi>_def K_def)
 
       have "(\<phi> x) [^]\<^bsub>K\<^esub> (order R^n) = f.eval (map (\<phi> \<circ> poly_of_const) x) (\<phi> X) [^]\<^bsub>K\<^esub> (order R^n)"
         unfolding \<phi>_def K_def
-        by (subst rupture_surj_as_eval[OF carrier_is_subring f_carr x_def(1)], simp)
+        by (subst rupture_surj_as_eval[OF f_carr x_def(1)], simp)
       also have "... = f.eval (map (\<lambda>x. \<phi> (poly_of_const x) [^]\<^bsub>K\<^esub> order R ^ n) x) (\<phi> X)"
         using a h.hom_closed var_closed(1)
         by (subst q.ring.eval_hom[OF f.carrier_is_subring], simp_all add:comp_def g)
@@ -516,13 +518,13 @@ proof -
         by (intro arg_cong2[where f="f.eval"] map_cong, simp_all)
       also have "... = (\<phi> x)"
         unfolding \<phi>_def K_def
-        by (subst rupture_surj_as_eval[OF carrier_is_subring f_carr x_def(1)], simp add:comp_def)
+        by (subst rupture_surj_as_eval[OF f_carr x_def(1)], simp add:comp_def)
       finally have "\<phi> x [^]\<^bsub>K\<^esub> order R ^ n = \<phi> x" by simp
        
       hence "y [^]\<^bsub>K\<^esub> (order R^n) = y" using x_def by simp
       hence "ring.eval K ?g2 y = \<zero>\<^bsub>K\<^esub>"
         unfolding gauss_poly_def a_minus_def
-        using f.var_closed[OF f.carrier_is_subring] f.eval_var y_def
+        using fp.var_closed f.eval_var y_def
         by (simp, algebra)
       hence "f.is_root ?g2 y"
         using y_def f.gauss_poly_not_zero[OF o2]
@@ -549,8 +551,8 @@ proof -
     also have "... = sum (\<lambda>d. 1) {d. monic_irreducible_poly K d \<and> degree d = 1}" 
       by simp
     also have "... = sum' (\<lambda>d. 1) {d. monic_irreducible_poly K d \<and> degree d = 1}" 
-      by (intro sum.eq_sum[symmetric] finite_subset[OF _ f.finite_poly(1)[OF f.carrier_is_subring d]])
-       (auto simp add:monic_irreducible_poly_def monic_poly_def) 
+      by (intro sum.eq_sum[symmetric] finite_subset[OF _ fp.finite_poly(1)[OF d]])
+       (auto simp add:monic_irreducible_poly_def monic_poly_def)
     also have "... = sum' (\<lambda>d. of_bool (degree d = 1)) {d. monic_irreducible_poly K d}" 
       by (intro sum.mono_neutral_cong_left' subsetI, simp_all)
     also have "... \<le> sum' (\<lambda>d. of_bool (degree d = 1)) {d. monic_irreducible_poly K d}"
@@ -680,7 +682,7 @@ proof (cases "degree f dvd n")
     by (simp add:power_mult[symmetric])
 
   interpret h: ring_hom_ring  "R" "P" "poly_of_const"
-    using canonical_embedding_ring_hom[OF carrier_is_subring] by simp
+    using canonical_embedding_ring_hom by simp
 
   have "f pdivides\<^bsub>R\<^esub> ?g"
     using True div_gauss_poly_iff[OF assms] by simp
@@ -702,36 +704,36 @@ proof (cases "degree f dvd n")
       using dividesD by auto
     have "\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> = int_embed P (order R ^ n) \<otimes>\<^bsub>P\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> (order R ^ n-1)) \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
       using var_closed
-      apply (subst int_embed_consistent_with_poly_of_const[OF carrier_is_subring])
+      apply (subst int_embed_consistent_with_poly_of_const)
       by(subst iffD2[OF embed_char_eq_0_iff char_dvd_order], simp add:a_minus_def)
     also have "... = pderiv\<^bsub>R\<^esub> (X\<^bsub>R\<^esub> [^]\<^bsub>P\<^esub> order R ^ n) \<ominus>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> X\<^bsub>R\<^esub>"
       using pderiv_var
-      by (subst pderiv_var_pow[OF o21 carrier_is_subring], simp)
+      by (subst pderiv_var_pow[OF o21], simp)
     also have "... = pderiv\<^bsub>R\<^esub> ?g" 
       unfolding gauss_poly_def a_minus_def using var_closed
-      by (subst pderiv_add[OF carrier_is_subring], simp_all add:pderiv_inv[OF carrier_is_subring])
+      by (subst pderiv_add, simp_all add:pderiv_inv)
     also have "... = pderiv\<^bsub>R\<^esub> (f [^]\<^bsub>P\<^esub> (2::nat) \<otimes>\<^bsub>P\<^esub> h)"
       using h_def(2) by simp
     also have "... = pderiv\<^bsub>R\<^esub> (f [^]\<^bsub>P\<^esub> (2::nat)) \<otimes>\<^bsub>P\<^esub> h \<oplus>\<^bsub>P\<^esub> (f [^]\<^bsub>P\<^esub> (2::nat)) \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h"
       using f_carr h_def
-      by (intro pderiv_mult[OF carrier_is_subring], simp_all)
+      by (intro pderiv_mult, simp_all)
     also have "... = int_embed P 2 \<otimes>\<^bsub>P\<^esub> f  \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> f \<otimes>\<^bsub>P\<^esub> h \<oplus>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h"
       using f_carr
-      by (subst pderiv_pow[OF _ carrier_is_subring], simp_all add:numeral_eq_Suc)
+      by (subst pderiv_pow, simp_all add:numeral_eq_Suc)
     also have "... = f \<otimes>\<^bsub>P\<^esub> (int_embed P 2 \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> f \<otimes>\<^bsub>P\<^esub> h) \<oplus>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> (f \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h)"
-      using f_carr pderiv_carr[OF carrier_is_subring] h_def p.int_embed_closed
+      using f_carr pderiv_carr h_def p.int_embed_closed
       apply (intro arg_cong2[where f="(\<oplus>\<^bsub>P\<^esub>)"]) 
       by (subst p.m_comm, simp_all add:p.m_assoc)
     also have "... = f \<otimes>\<^bsub>P\<^esub> (int_embed P 2 \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> f \<otimes>\<^bsub>P\<^esub> h \<oplus>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h)"
-      using f_carr pderiv_carr[OF carrier_is_subring] h_def p.int_embed_closed
+      using f_carr pderiv_carr h_def p.int_embed_closed
       by (subst p.r_distr, simp_all)
     finally have "\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> = f \<otimes>\<^bsub>P\<^esub> (int_embed P 2 \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> f \<otimes>\<^bsub>P\<^esub> h \<oplus>\<^bsub>P\<^esub> f \<otimes>\<^bsub>P\<^esub> pderiv\<^bsub>R\<^esub> h)" 
       (is "_ = f \<otimes>\<^bsub>P\<^esub> ?q")
       by simp
 
     hence "f pdivides\<^bsub>R\<^esub> \<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>"
-      unfolding factor_def pdivides_def using f_carr pderiv_carr[OF carrier_is_subring] 
-        h_def p.int_embed_closed
+      unfolding factor_def pdivides_def
+      using f_carr pderiv_carr h_def p.int_embed_closed
       by auto
     moreover have "\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub> \<noteq> \<zero>\<^bsub>P\<^esub>" by simp
     ultimately have  "degree f \<le> degree (\<ominus>\<^bsub>P\<^esub> \<one>\<^bsub>P\<^esub>)"
@@ -776,7 +778,7 @@ proof -
     have "{f. monic_irreducible_poly R f \<and> degree f = k} \<subseteq> {f. f \<in> carrier P \<and> degree f \<le> k}"
       unfolding monic_irreducible_poly_def monic_poly_def by auto
     moreover have "finite {f. f \<in> carrier P \<and> degree f \<le> k}" 
-      using finite_poly[OF carrier_is_subring finite_carrier] by simp
+      using finite_poly[OF finite_carrier] by simp
     ultimately show ?thesis using finite_subset by simp
   qed
 

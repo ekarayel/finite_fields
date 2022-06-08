@@ -15,6 +15,9 @@ derivation by Ireland and Rosen~\cite[\textsection 7]{ireland1982} closely, with
 does not assume that $R$ is a simple prime field, but that it is just a finite field.
 This works by adjusting a proof step with the information that order of finite fields must be of the
 form $p^n$, where $p$ is the characteristic of the field, derived in Section~\ref{sec:ring_char}.
+The final step relies on the M\"obius inversion theorem formalized by
+Eberl~\cite{Dirichlet_Series-AFP}.\footnote{Thanks to Katharina Kreuzer for discovering that
+formalization.}
 
 With Gauss' formula it is possible to show the existence of the finite fields of order $p^n$ 
 where $p$ is a prime and $n > 0$. During the proof the fact that the polynomial $X^n - X$ splits
@@ -521,7 +524,8 @@ proof (rule ring_iso_memI)
     have set_x: "set x \<subseteq> carrier R" 
       using that unfolding univ_poly_carrier[symmetric]
       unfolding polynomial_def by auto
-    have "?hinv (map h x) = map (\<lambda>y. the_inv_into (carrier R) h (h y)) x"
+    have "?hinv (map h x) = 
+      map (\<lambda>y. the_inv_into (carrier R) h (h y)) x"
       by simp
     also have "... = map id x"
       using set_x by (intro map_cong)
@@ -535,7 +539,8 @@ proof (rule ring_iso_memI)
     have set_x: "set x \<subseteq> h ` carrier R" 
       using that h_img unfolding univ_poly_carrier[symmetric]
       unfolding polynomial_def by auto
-    have "map h (?hinv x) = map (\<lambda>y. h (the_inv_into (carrier R) h y)) x"
+    have "map h (?hinv x) = 
+      map (\<lambda>y. h (the_inv_into (carrier R) h y)) x"
       by simp
     also have "... = map id x"
       using set_x by (intro map_cong)
@@ -635,13 +640,17 @@ proof -
 qed
 
 lemma properfactor_hom:
-  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R" "b \<in> carrier R"
+  assumes "h \<in> ring_iso R S" 
+  assumes "domain R" "domain S" 
+  assumes "x \<in> carrier R" "b \<in> carrier R"
   shows "properfactor R b x \<longleftrightarrow> properfactor S (h b) (h x)" 
   using divides_hom[OF assms(1,2,3)] assms(4,5)
   unfolding properfactor_def by simp
 
 lemma Units_hom:
-  assumes "h \<in> ring_iso R S" "domain R" "domain S" "x \<in> carrier R"
+  assumes "h \<in> ring_iso R S" 
+  assumes "domain R" "domain S" 
+  assumes "x \<in> carrier R"
   shows "x \<in> Units R \<longleftrightarrow>  h x \<in> Units S"
 proof -
 
@@ -664,11 +673,14 @@ proof -
   hence h_one_iff: "h x = \<one>\<^bsub>S\<^esub> \<longleftrightarrow> x = \<one>\<^bsub>R\<^esub>" if "x \<in> carrier R" for x
     using h.hom_one that by (metis dr.one_closed inj_onD)
 
-  have "x \<in> Units R \<longleftrightarrow> (\<exists>y\<in>carrier R. x \<otimes>\<^bsub>R\<^esub> y = \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>R\<^esub> x = \<one>\<^bsub>R\<^esub>)"
+  have "x \<in> Units R \<longleftrightarrow> 
+    (\<exists>y\<in>carrier R. x \<otimes>\<^bsub>R\<^esub> y = \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>R\<^esub> x = \<one>\<^bsub>R\<^esub>)"
     using assms unfolding Units_def by auto
-  also have "... \<longleftrightarrow> (\<exists>y\<in>carrier R. h x \<otimes>\<^bsub>S\<^esub> h y = h \<one>\<^bsub>R\<^esub> \<and> h y \<otimes>\<^bsub>S\<^esub> h x = h \<one>\<^bsub>R\<^esub>)"
+  also have "... \<longleftrightarrow> 
+    (\<exists>y\<in>carrier R. h x \<otimes>\<^bsub>S\<^esub> h y = h \<one>\<^bsub>R\<^esub> \<and> h y \<otimes>\<^bsub>S\<^esub> h x = h \<one>\<^bsub>R\<^esub>)"
     using h_one_iff assms by (intro bex_cong, simp_all flip:h.hom_mult)
-  also have "... \<longleftrightarrow> (\<exists>y\<in>carrier S. h x \<otimes>\<^bsub>S\<^esub> y = h \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>S\<^esub> h x = \<one>\<^bsub>S\<^esub>)"
+  also have "... \<longleftrightarrow> 
+    (\<exists>y\<in>carrier S. h x \<otimes>\<^bsub>S\<^esub> y = h \<one>\<^bsub>R\<^esub> \<and> y \<otimes>\<^bsub>S\<^esub> h x = \<one>\<^bsub>S\<^esub>)"
     unfolding h_img[symmetric] by simp
   also have "... \<longleftrightarrow> h x \<in> Units S"
     using assms h.hom_closed unfolding Units_def by auto
@@ -684,13 +696,17 @@ proof -
   have h_img: "h ` (carrier R) = carrier S" 
     using assms(1) unfolding ring_iso_def bij_betw_def by auto
 
-  have "irreducible R x \<longleftrightarrow> (x \<notin> Units R \<and> (\<forall>b\<in>carrier R. properfactor R b x \<longrightarrow> b \<in> Units R))"
+  have "irreducible R x \<longleftrightarrow> (x \<notin> Units R \<and> 
+    (\<forall>b\<in>carrier R. properfactor R b x \<longrightarrow> b \<in> Units R))"
     unfolding Divisibility.irreducible_def by simp
-  also have "... \<longleftrightarrow> (x \<notin> Units R \<and> (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> b \<in> Units R))"
+  also have "... \<longleftrightarrow> (x \<notin> Units R \<and> 
+    (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> b \<in> Units R))"
     using properfactor_hom[OF assms(1,2,3)] assms(4) by simp
-  also have "... \<longleftrightarrow> (h x \<notin> Units S \<and> (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> h b \<in> Units S))"
+  also have "... \<longleftrightarrow> (h x \<notin> Units S \<and> 
+    (\<forall>b\<in>carrier R. properfactor S (h b) (h x) \<longrightarrow> h b \<in> Units S))"
     using assms(4) Units_hom[OF assms(1,2,3)] by simp
-  also have "...\<longleftrightarrow> (h x \<notin> Units S \<and> (\<forall>b\<in>h ` carrier R. properfactor S b (h x) \<longrightarrow> b \<in> Units S))"
+  also have "...\<longleftrightarrow> (h x \<notin> Units S \<and> 
+    (\<forall>b\<in>h ` carrier R. properfactor S b (h x) \<longrightarrow> b \<in> Units S))"
     by simp
   also have "... \<longleftrightarrow> irreducible S (h x)"
     unfolding h_img Divisibility.irreducible_def by simp
@@ -712,15 +728,20 @@ proof -
 
   have mh_inj_on: "inj_on (map h) (carrier (poly_ring R))" 
     using lift_iso unfolding ring_iso_def bij_betw_def by auto
-  moreover have "map h \<zero>\<^bsub>poly_ring R\<^esub> = \<zero>\<^bsub>poly_ring S\<^esub>" by (simp add:univ_poly_zero)
-  ultimately have mh_zero_iff: "map h f = \<zero>\<^bsub>poly_ring S\<^esub> \<longleftrightarrow> f = \<zero>\<^bsub>poly_ring R\<^esub>"
+  moreover have "map h \<zero>\<^bsub>poly_ring R\<^esub> = \<zero>\<^bsub>poly_ring S\<^esub>"
+    by (simp add:univ_poly_zero)
+  ultimately have mh_zero_iff: 
+    "map h f = \<zero>\<^bsub>poly_ring S\<^esub> \<longleftrightarrow> f = \<zero>\<^bsub>poly_ring R\<^esub>"
     using assms(4) by (metis pdr.zero_closed inj_onD)
 
   have "?lhs \<longleftrightarrow> (f \<noteq> \<zero>\<^bsub>poly_ring R\<^esub> \<and> irreducible (poly_ring R) f)"
     unfolding ring_irreducible_def by simp
-  also have "... \<longleftrightarrow> (f \<noteq> \<zero>\<^bsub>poly_ring R\<^esub> \<and> irreducible (poly_ring S) (map h f))"
-    using irreducible_hom[OF lift_iso pdr.domain_axioms pds.domain_axioms] assms(4) by simp
-  also have "... \<longleftrightarrow> (map h f \<noteq> \<zero>\<^bsub>poly_ring S\<^esub> \<and> irreducible (poly_ring S) (map h f))"
+  also have "... \<longleftrightarrow> 
+    (f \<noteq> \<zero>\<^bsub>poly_ring R\<^esub> \<and> irreducible (poly_ring S) (map h f))"
+    using irreducible_hom[OF lift_iso] pdr.domain_axioms
+    using assms(4) pds.domain_axioms by simp
+  also have "... \<longleftrightarrow> 
+    (map h f \<noteq> \<zero>\<^bsub>poly_ring S\<^esub> \<and> irreducible (poly_ring S) (map h f))"
     using mh_zero_iff by simp
   also have "... \<longleftrightarrow> ?rhs"
     unfolding ring_irreducible_def by simp
