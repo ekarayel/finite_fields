@@ -80,7 +80,9 @@ lemma finite_fieldI:
   assumes "field R"
   assumes "finite (carrier R)"
   shows "finite_field R"
-  using assms unfolding finite_field_def finite_field_axioms_def by auto
+  using assms
+  unfolding finite_field_def finite_field_axioms_def
+  by auto
 
 lemma (in domain) finite_domain_units:
   assumes "finite (carrier R)"
@@ -401,8 +403,8 @@ to be $0$. In the case of rings with unit elements --- not that the locale @{loc
 unit elements --- the above definition can be simplified to the number of times the unit elements
 needs to be repeatedly added to reach $0$.
 
-The following three lemmas imply that the definition of the characteristic coincides with the latter
-definition.\<close>
+The following three lemmas imply that the definition of the characteristic here coincides with the
+latter definition.\<close>
 
 lemma (in ring) char_bound:
   assumes "x > 0"
@@ -555,12 +557,12 @@ proof (rule ccontr)
     using pq_def(2,3) by simp
 qed
 
-  
 lemma (in ring) char_ring_is_subring:
   "subring (char_subring R) R"
 proof -
   have "subring (int_embed R ` carrier int_ring) R"
-    by (intro ring_hom_ring.img_is_subring[OF int_embed_ring_hom] ring.carrier_is_subring int.is_ring)
+    by (intro ring.carrier_is_subring int.is_ring
+        ring_hom_ring.img_is_subring[OF int_embed_ring_hom]) 
   thus ?thesis by simp
 qed
 
@@ -604,13 +606,13 @@ proof -
     if "A \<subseteq> {..<(n::nat)}" for n A 
     using finite_subset that by (subst card_insert_disjoint, auto)
 
-  have embed_distr: "[m] \<cdot> y = int_embed R (int m) \<otimes> y" if a:"y \<in> carrier R" for m y
-    unfolding int_embed_def add_pow_def using a
-    apply (subst int_pow_int)
-    apply (simp add:add_pow_def[symmetric])
-    by (subst add_pow_ldistr, simp, simp, simp)
+  have embed_distr: "[m] \<cdot> y = int_embed R (int m) \<otimes> y" 
+    if "y \<in> carrier R" for m y
+    unfolding int_embed_def add_pow_def using that
+    by (simp add:add_pow_def[symmetric] int_pow_int add_pow_ldistr)
 
-  have "(x \<oplus> y) [^] n = (\<Oplus>A \<in> Pow {..<n}. x [^] (card A) \<otimes> y [^] (n-card A))"
+  have "(x \<oplus> y) [^] n = 
+    (\<Oplus>A \<in> Pow {..<n}. x [^] (card A) \<otimes> y [^] (n-card A))"
   proof (induction n)
     case 0
     then show ?case by simp
@@ -658,8 +660,8 @@ proof -
       (\<Oplus>A \<in> {A. A \<subseteq> {..<n+1} \<and> n \<notin> A}. 
         x [^] (card A) \<otimes> y [^] (n+1-card A))"
       by (intro arg_cong2[where f="(\<oplus>)"] finsum_cong' s1 s2, simp_all)
-    also have "... = 
-      (\<Oplus>A \<in> {A. A \<subseteq> {..<n+1} \<and> n \<in> A} \<union> {A. A \<subseteq> {..<n+1} \<and> n \<notin> A}. 
+    also have "... = (\<Oplus>A \<in> 
+      {A. A \<subseteq> {..<n+1} \<and> n \<in> A} \<union> {A. A \<subseteq> {..<n+1} \<and> n \<notin> A}. 
         x [^] (card A) \<otimes> y [^] (n+1-card A))"
       by (subst finsum_Un_disjoint, auto)
     also have "... = 
@@ -745,7 +747,8 @@ proof (induction m)
   then show ?case by simp
 next
   case (Suc m)
-  have "(x \<oplus> y) [^] (char R^(m+1)) = (x \<oplus> y) [^] (char R^m * char R)"
+  have "(x \<oplus> y) [^] (char R^(m+1)) = 
+    (x \<oplus> y) [^] (char R^m * char R)"
     by (simp add:mult.commute)
   also have "... = ((x \<oplus> y) [^] (char R^m)) [^] char R"
     using nat_pow_pow by simp
@@ -903,11 +906,13 @@ lemma (in ring_hom_ring) char_consistent:
   shows "char R = char S"
 proof -
   have a:"h (int_embed R (int n)) = int_embed S (int n)" for n
-    apply (induction n)
-     apply (simp add:R.int_embed_zero S.int_embed_zero)
     using R.int_embed_range[OF R.carrier_is_subring]
-    using S.int_embed_range[OF S.carrier_is_subring]
-    by (simp add:R.int_embed_add S.int_embed_add R.int_embed_one S.int_embed_one)
+    using R.int_embed_range[OF R.carrier_is_subring]
+    using S.int_embed_one R.int_embed_one
+    using S.int_embed_zero R.int_embed_zero
+    using S.int_embed_add R.int_embed_add
+    by (induction n, simp_all)
+
   have b:"h (int_embed R (-(int n))) = int_embed S (-(int n))" for n
     using R.int_embed_range[OF R.carrier_is_subring]
     using S.int_embed_range[OF S.carrier_is_subring] a
@@ -916,13 +921,15 @@ proof -
   have c:"h (int_embed R n) = int_embed S n" for n
   proof (cases "n \<ge> 0")
     case True
-    then obtain m where "n = int m" using nonneg_int_cases by auto
+    then obtain m where "n = int m"
+      using nonneg_int_cases by auto
     then show ?thesis 
       by (simp add:a)
   next
     case False
     hence "n \<le> 0" by simp
-    then obtain m where "n = -int m"  using nonpos_int_cases by auto
+    then obtain m where "n = -int m" 
+      using nonpos_int_cases by auto
     then show ?thesis by (simp add:b)
   qed
 
@@ -930,8 +937,7 @@ proof -
     unfolding char_def image_image c by simp
   also have "... = card (char_subring R)"
     using R.int_embed_range[OF R.carrier_is_subring]
-    apply (intro card_image inj_on_subset[OF assms(1)]) 
-    by auto 
+    by (intro card_image inj_on_subset[OF assms(1)]) auto 
   also have "... = char R" unfolding char_def by simp
   finally show ?thesis
     by simp
@@ -943,8 +949,8 @@ definition char_iso :: "_ \<Rightarrow> int set \<Rightarrow> 'a"
 text \<open>The function @{term "char_iso R"} denotes the isomorphism between @{term "ZFact (char R)"} and
 the characteristic subring.\<close>
 
-lemma (in ring) char_iso:
-  "char_iso R \<in> ring_iso (ZFact (char R)) (R\<lparr>carrier := char_subring R\<rparr>)"
+lemma (in ring) char_iso: "char_iso R \<in> 
+  ring_iso (ZFact (char R)) (R\<lparr>carrier := char_subring R\<rparr>)"
 proof -
   interpret h: ring_hom_ring "int_ring" "R" "int_embed R"
     using int_embed_ring_hom by simp
@@ -965,7 +971,7 @@ proof -
 qed
 
 text \<open>The size of a finite field must be a prime power.
-This can be found in Ireland and Rosen~\cite[Theorem 7.1.3]{ireland1982}.\<close>
+This can be found in Ireland and Rosen~\cite[Proposition 7.1.3]{ireland1982}.\<close>
 
 theorem (in finite_field) finite_field_order:
   "\<exists>n. order R = char R ^ n \<and> n > 0"
@@ -1000,7 +1006,9 @@ proof -
   hence "order R = card (Span ?CR w)" by (simp add:order_def)
   also have "... = card ?CR^length w"
     by (intro card_span char_ring_is_subfield[OF a] w_def(1,2))
-  finally have c:"order R = char R^(length w)" by (simp add:char_def)
+  finally have c:
+    "order R = char R^(length w)"
+    by (simp add:char_def)
   have "length w > 0"
     using finite_field_min_order c by auto
   thus ?thesis using c by auto

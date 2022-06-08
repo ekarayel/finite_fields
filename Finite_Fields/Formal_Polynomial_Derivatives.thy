@@ -199,7 +199,8 @@ qed
 lemma pderiv_mult:
   assumes "subring K R"
   assumes [simp]: "f \<in> carrier (K[X])" "g \<in> carrier (K[X])"
-  shows "pderiv (f \<otimes>\<^bsub>K[X]\<^esub> g) = pderiv f \<otimes>\<^bsub>K[X]\<^esub> g \<oplus>\<^bsub>K[X]\<^esub> f \<otimes>\<^bsub>K[X]\<^esub> pderiv g" 
+  shows "pderiv (f \<otimes>\<^bsub>K[X]\<^esub> g) = 
+    pderiv f \<otimes>\<^bsub>K[X]\<^esub> g \<oplus>\<^bsub>K[X]\<^esub> f \<otimes>\<^bsub>K[X]\<^esub> pderiv g" 
     (is "?lhs = ?rhs")
 proof -
   interpret p: cring "(K[X])"
@@ -218,48 +219,53 @@ proof -
     have "coeff ?lhs i = ?n (i+1) \<otimes> coeff (f \<otimes>\<^bsub>K [X]\<^esub> g) (i+1)"
       using assms(2,3) by (simp add: pderiv_coeff[OF assms(1)])
     also have "... = ?n (i+1) \<otimes> 
-      (\<Oplus> k \<in> {..i+1}. coeff f k \<otimes> (coeff g (i + 1 - k)))"
+      (\<Oplus>k \<in> {..i+1}. coeff f k \<otimes> (coeff g (i + 1 - k)))"
       by (subst coeff_mult[OF assms], simp)
     also have "... = 
-      (\<Oplus> k \<in> {..i+1}. ?n (i+1) \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)))"
+      (\<Oplus>k \<in> {..i+1}. ?n (i+1) \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)))"
       by (intro finsum_rdistr, simp_all add:Pi_def) 
     also have "... = 
-      (\<Oplus> k \<in> {..i+1}. ?n k \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)) \<oplus>
+      (\<Oplus>k \<in> {..i+1}. ?n k \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)) \<oplus>
       ?n (i+1-k) \<otimes> (coeff f k \<otimes> coeff g (i + 1 - k)))" 
-      using int_embed_add[symmetric] 
-      by (intro finsum_cong',simp_all add:l_distr[symmetric] of_nat_diff) 
+      using int_embed_add[symmetric] of_nat_diff
+      by (intro finsum_cong') 
+        (simp_all add:l_distr[symmetric] of_nat_diff) 
     also have "... = 
-      (\<Oplus> k \<in> {..i+1}. ?n k \<otimes> coeff f k \<otimes> coeff g (i + 1 - k) \<oplus>
+      (\<Oplus>k \<in> {..i+1}. ?n k \<otimes> coeff f k \<otimes> coeff g (i + 1 - k) \<oplus>
       coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i + 1 - k)))" 
       using Pi_def a b m_assoc m_comm
       by (intro finsum_cong' arg_cong2[where f="(\<oplus>)"], simp_all)
     also have "... = 
-      (\<Oplus> k \<in> {..i+1}. ?n k \<otimes> coeff f (k) \<otimes> coeff g (i + 1 - k)) \<oplus>
-      (\<Oplus> k \<in> {..i+1}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i + 1 - k)))" 
+      (\<Oplus>k \<in> {..i+1}. ?n k \<otimes> coeff f k \<otimes> coeff g (i+1-k)) \<oplus>
+      (\<Oplus>k \<in> {..i+1}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i+1-k)))" 
       by (subst finsum_addf[symmetric], simp_all add:Pi_def) 
     also have "... = 
-      (\<Oplus> k \<in> insert 0 {1..i+1}. ?n k \<otimes> coeff f (k) \<otimes> coeff g (i + 1 - k)) \<oplus>
-      (\<Oplus> k \<in> insert (i+1) {..i}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i + 1 - k)))" 
+      (\<Oplus>k\<in>insert 0 {1..i+1}. ?n k \<otimes> coeff f k \<otimes> coeff g (i+1-k)) \<oplus>
+      (\<Oplus>k\<in>insert (i+1) {..i}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i+1-k)))" 
       using subringE(1)[OF assms(1)]
-      by (intro arg_cong2[where f="(\<oplus>)"] finsum_cong', auto simp add:set_eq_iff)
+      by (intro arg_cong2[where f="(\<oplus>)"] finsum_cong')
+        (auto simp:set_eq_iff)
     also have "... = 
-      (\<Oplus> k \<in> {1..i+1}. ?n k \<otimes> coeff f (k) \<otimes> coeff g (i + 1 - k)) \<oplus>
-      (\<Oplus> k \<in> {..i}. coeff f k \<otimes> (?n (i + 1 -k) \<otimes> coeff g (i + 1 - k)))" 
+      (\<Oplus>k \<in> {1..i+1}. ?n k \<otimes> coeff f k \<otimes> coeff g (i+1-k)) \<oplus>
+      (\<Oplus>k \<in> {..i}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i+1-k)))" 
       by (subst (1 2) finsum_insert, auto simp add:int_embed_zero)
     also have "... = 
-      (\<Oplus> k \<in> Suc ` {..i}. ?n k \<otimes> coeff f (k) \<otimes> coeff g (i + 1 - k)) \<oplus>
-      (\<Oplus> k \<in> {..i}. coeff f k \<otimes> (?n (i + 1 -k) \<otimes> coeff g (i + 1- k)))" 
-      by (intro arg_cong2[where f="(\<oplus>)"] finsum_cong', simp_all add:Pi_def atMost_atLeast0)
+      (\<Oplus>k \<in> Suc ` {..i}. ?n k \<otimes> coeff f (k) \<otimes> coeff g (i+1-k)) \<oplus>
+      (\<Oplus>k \<in> {..i}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i+1-k)))" 
+      by (intro arg_cong2[where f="(\<oplus>)"] finsum_cong')
+        (simp_all add:Pi_def atMost_atLeast0)
     also have "... = 
-      (\<Oplus> k \<in> {..i}. ?n (k+1) \<otimes> coeff f (k+1) \<otimes> coeff g (i - k)) \<oplus>
-      (\<Oplus> k \<in> {..i}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i+1- k)))" 
+      (\<Oplus>k \<in> {..i}. ?n (k+1) \<otimes> coeff f (k+1) \<otimes> coeff g (i-k)) \<oplus>
+      (\<Oplus>k \<in> {..i}. coeff f k \<otimes> (?n (i+1-k) \<otimes> coeff g (i+1-k)))" 
       by (subst finsum_reindex, auto)
     also have "... = 
-      (\<Oplus> k \<in> {..i}. coeff (pderiv f) k \<otimes> coeff g (i - k)) \<oplus>
-      (\<Oplus> k \<in> {..i}. coeff f k \<otimes> coeff (pderiv g) (i - k))" 
+      (\<Oplus>k \<in> {..i}. coeff (pderiv f) k \<otimes> coeff g (i-k)) \<oplus>
+      (\<Oplus>k \<in> {..i}. coeff f k \<otimes> coeff (pderiv g) (i-k))" 
       using Suc_diff_le
-      by (subst (1 2) pderiv_coeff[OF assms(1)], auto intro!: finsum_cong')
-    also have "... = coeff (pderiv f \<otimes>\<^bsub>K[X]\<^esub> g) i \<oplus> coeff (f \<otimes>\<^bsub>K[X]\<^esub> pderiv g) i"
+      by (subst (1 2) pderiv_coeff[OF assms(1)]) 
+        (auto intro!: finsum_cong')
+    also have "... = 
+      coeff (pderiv f \<otimes>\<^bsub>K[X]\<^esub> g) i \<oplus> coeff (f \<otimes>\<^bsub>K[X]\<^esub> pderiv g) i"
       using pderiv_carr[OF assms(1)]
       by (subst (1 2) coeff_mult[OF assms(1)], auto)
     also have "... = coeff ?rhs i" 
@@ -344,7 +350,7 @@ lemma pderiv_var_pow:
   assumes "n > (0::nat)"
   assumes "subring K R"
   shows "pderiv (X [^]\<^bsub>K[X]\<^esub> n) = 
-          int_embed (K[X]) n \<otimes>\<^bsub>K[X]\<^esub> X [^]\<^bsub>K[X]\<^esub> (n-1)"
+    int_embed (K[X]) n \<otimes>\<^bsub>K[X]\<^esub> X [^]\<^bsub>K[X]\<^esub> (n-1)"
 proof -
   interpret p: cring "(K[X])"
     using univ_poly_is_cring[OF assms(2)] by simp
@@ -386,15 +392,17 @@ proof -
   qed
   also have "... = poly_of_const (int_embed R n)"
     unfolding K'_def using int_embed_consistent[OF assms] by simp
-  finally have a: "int_embed (K[X]) (int n) = poly_of_const (int_embed R (int n))" by simp
+  finally have a: 
+    "int_embed (K[X]) (int n) = poly_of_const (int_embed R (int n))"
+    by simp
 
   have "int_embed (K[X]) (-(int n)) = 
     poly_of_const (int_embed K' (- (int n)))"
     using d.int_embed_closed a1 by (simp add: p.int_embed_inv d.int_embed_inv)
   also have "... = poly_of_const (int_embed R (- (int n)))"
     unfolding K'_def using int_embed_consistent[OF assms] by simp
-  finally have b: "int_embed (K[X]) (-int n) = 
-    poly_of_const (int_embed R (-int n))"
+  finally have b:
+    "int_embed (K[X]) (-int n) = poly_of_const (int_embed R (-int n))"
     by simp
 
   show ?thesis

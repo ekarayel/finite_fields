@@ -38,16 +38,21 @@ proof -
   have rupt_is_ring: "ring (Rupt\<^bsub>ZFact p\<^esub> (carrier (ZFact p)) f)"
     unfolding rupture_def by (intro i.quotient_is_ring)
 
-  have "map (char_iso R) \<in> ring_iso ?P (poly_ring (R\<lparr>carrier := char_subring R\<rparr>))"
+  have "map (char_iso R) \<in> 
+    ring_iso ?P (poly_ring (R\<lparr>carrier := char_subring R\<rparr>))"
     using lift_iso_to_poly_ring[OF char_iso] zf.domain_axioms 
-    using char_ring_is_subdomain subdomain_is_domain by (simp add:p_def)
-  moreover have "(char_subring R)[X] = poly_ring (R \<lparr>carrier := char_subring R\<rparr>)"
+    using char_ring_is_subdomain subdomain_is_domain
+    by (simp add:p_def)
+  moreover have "(char_subring R)[X] = 
+    poly_ring (R \<lparr>carrier := char_subring R\<rparr>)"
     using univ_poly_consistent[OF char_ring_is_subring] by simp
-  ultimately have "map (char_iso R) \<in> ring_hom ?P ((char_subring R)[X])"
+  ultimately have 
+    "map (char_iso R) \<in> ring_hom ?P ((char_subring R)[X])"
     by (simp add:ring_iso_def)
   moreover have "(\<lambda>p. eval p x) \<in> ring_hom ((char_subring R)[X]) R"
     using eval_is_hom char_ring_is_subring assms(5) by simp
-  ultimately have "(\<lambda>p. eval p x) \<circ> map (char_iso R) \<in> ring_hom ?P R"
+  ultimately have 
+    "(\<lambda>p. eval p x) \<circ> map (char_iso R) \<in> ring_hom ?P R"
     using ring_hom_trans by blast
   hence a:"(\<lambda>p. eval (map (char_iso R) p) x) \<in> ring_hom ?P R"
     by (simp add:comp_def)
@@ -59,11 +64,15 @@ proof -
 
   have "?h ` a_kernel (poly_ring (ZFact (int p))) R ?h \<subseteq> {\<zero>}"
     by auto
-  moreover have "\<zero>\<^bsub>?P\<^esub> \<in> a_kernel (poly_ring (ZFact (int p))) R ?h" "?h \<zero>\<^bsub>?P\<^esub> = \<zero>" 
+  moreover have 
+    "\<zero>\<^bsub>?P\<^esub> \<in> a_kernel (poly_ring (ZFact (int p))) R ?h" 
+    "?h \<zero>\<^bsub>?P\<^esub> = \<zero>" 
     unfolding a_kernel_def' by simp_all
   hence "{\<zero>} \<subseteq> ?h ` a_kernel (poly_ring (ZFact (int p))) R ?h"
     by simp
-  ultimately have c:"?h ` a_kernel (poly_ring (ZFact (int p))) R ?h = {\<zero>}" by auto
+  ultimately have c:
+    "?h ` a_kernel (poly_ring (ZFact (int p))) R ?h = {\<zero>}"
+    by auto
 
   have d: "PIdl\<^bsub>?P\<^esub> f \<subseteq> a_kernel ?P R ?h"
   proof (rule subsetI) 
@@ -83,16 +92,18 @@ proof -
       unfolding a_kernel_def kernel_def by simp
   qed
 
-  have "(\<lambda>y. the_elem ((\<lambda>p. eval (map (char_iso R) p) x) ` y)) \<in> ring_hom (?P Quot ?J) R"
+  have "(\<lambda>y. the_elem ((\<lambda>p. eval (map (char_iso R) p) x) ` y)) 
+    \<in> ring_hom (?P Quot ?J) R"
     using h.the_elem_hom by simp
   moreover have "(\<lambda>y. ?J <+>\<^bsub>?P\<^esub> y) 
     \<in> ring_hom (Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f) (?P Quot ?J)"
-    unfolding rupture_def
-    by (intro pzf.quot_quot_hom pzf.cgenideal_ideal assms(2) h.kernel_is_ideal d) 
+    unfolding rupture_def using h.kernel_is_ideal d assms(2)
+    by (intro pzf.quot_quot_hom pzf.cgenideal_ideal) auto
   ultimately have "(\<lambda>y. the_elem (?h ` y)) \<circ> (\<lambda>y. ?J <+>\<^bsub>?P\<^esub> y)
     \<in> ring_hom (Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f) R"
     using ring_hom_trans by blast
-  hence b:"(\<lambda>y. the_elem (?h ` (?J <+>\<^bsub>?P\<^esub> y))) \<in> ring_hom (Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f) R"
+  hence b: "(\<lambda>y. the_elem (?h ` (?J <+>\<^bsub>?P\<^esub> y))) \<in> 
+    ring_hom (Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f) R"
     by (simp add:comp_def)
   have "?h ` y = ?h ` (?J <+>\<^bsub>?P\<^esub> y)"
     if "y \<in> carrier (Rupt\<^bsub>ZFact p\<^esub> (carrier (ZFact p)) f)"
@@ -110,8 +121,7 @@ proof -
   qed
   hence "(\<lambda>y. the_elem (?h ` y)) \<in> 
     ring_hom (Rupt\<^bsub>(ZFact p)\<^esub> (carrier (ZFact p)) f) R"
-    by (intro ring_hom_cong[OF _ rupt_is_ring b] arg_cong[where f="the_elem"])
-      simp
+    by (intro ring_hom_cong[OF _ rupt_is_ring b]) simp
   thus ?thesis
     by (intro ring_hom_ringI2 rupt_is_ring ring_axioms, simp)
 qed
@@ -182,8 +192,8 @@ proof -
   also have "... = gauss_poly R (card K^degree f)"
     unfolding gauss_poly_def a_minus_def using var_closed[OF b]
     by (simp add:e.hom_nat_pow, simp add:\<tau>_def)
-  finally have gp_consistent: 
-    "gauss_poly ?K (order ?K^degree f) = gauss_poly R (card K^degree f)"
+  finally have gp_consistent: "gauss_poly ?K (order ?K^degree f) = 
+    gauss_poly R (card K^degree f)"
     by simp
 
   have deg_f: "degree f > 0" 
@@ -244,17 +254,17 @@ proof -
     using char_ring_is_subdomain subdomain_is_domain by simp 
 
   hence "monic_irreducible_poly (R \<lparr> carrier := char_subring R \<rparr>) ?f'" 
-    using char_iso p_def
-    by (intro monic_irreducible_poly_hom[OF assms(2) _ zf.domain_axioms])
-      auto
+    using char_iso p_def zf.domain_axioms
+    by (intro monic_irreducible_poly_hom[OF assms(2)]) auto
   moreover have "order R = card (char_subring R)^degree ?f'"
     using assms(3) unfolding char_def by simp
   ultimately obtain x where x_def: "eval ?f' x = \<zero>" "x \<in> carrier R"
     using find_root[OF char_ring_is_subfield[OF char_pos]] by blast
   let ?\<phi> = "(\<lambda>g. the_elem ((\<lambda>g'. eval (map (char_iso R) g') x) ` g))"
   interpret r: ring_hom_ring "?F" "R" "?\<phi>"
-    using assms(2,3) unfolding monic_irreducible_poly_def monic_poly_def
-    unfolding p_def by (intro eval_on_root_is_iso x_def, auto) 
+    using assms(2,3)
+    unfolding monic_irreducible_poly_def monic_poly_def p_def
+    by (intro eval_on_root_is_iso x_def, auto) 
   have a:"?\<phi> \<in> ring_hom ?F R" 
     using r.homh by auto
 
@@ -307,7 +317,8 @@ proof -
   hence char_prime: 
     "Factorial_Ring.prime (char F\<^sub>1)" 
     "Factorial_Ring.prime (char F\<^sub>2)"
-    using f1.characteristic_is_prime f2.characteristic_is_prime by auto
+    using f1.characteristic_is_prime f2.characteristic_is_prime
+    by auto
 
   have "char F\<^sub>1^n = char F\<^sub>2^m" 
     using o1 o2 assms(3) by simp
@@ -325,7 +336,7 @@ proof -
     using zfact_prime_is_finite_field p_prime o1(2) 
     using prime_nat_int_transfer by blast
 
-  interpret zfp: polynomial_ring "ZFact (int p)" "(carrier (ZFact (int p)))"
+  interpret zfp: polynomial_ring "ZFact p" "carrier (ZFact p)"
     unfolding polynomial_ring_def polynomial_ring_axioms_def
     using zf.field_axioms zf.carrier_is_subfield by simp
 

@@ -13,8 +13,8 @@ A cornerstone of the proof is the derivation of Gauss' formula for the number of
 polynomials over a finite field $R$ in Section~\ref{sec:card_irred}. The proof follows the
 derivation by Ireland and Rosen~\cite[\textsection 7]{ireland1982} closely, with the caveat that it
 does not assume that $R$ is a simple prime field, but that it is just a finite field.
-This works by adjusting a proof step with the information that order of finite fields must be of the
-form $p^n$, where $p$ is the characteristic of the field, derived in Section~\ref{sec:ring_char}.
+This works by adjusting a proof step with the information that the order of a finite field must be 
+of the form $p^n$, where $p$ is the characteristic of the field, derived in Section~\ref{sec:ring_char}.
 The final step relies on the M\"obius inversion theorem formalized by
 Eberl~\cite{Dirichlet_Series-AFP}.\footnote{Thanks to Katharina Kreuzer for discovering that
 formalization.}
@@ -476,7 +476,8 @@ proof (rule ring_iso_memI)
     have "map h (x \<oplus>\<^bsub>?R\<^esub> y) = ds.normalize (map h (x \<oplus>\<^bsub>?R\<^esub> y))"
       using that by (intro norm_elim[symmetric],simp) 
     also have "... = map h x \<oplus>\<^bsub>?S\<^esub> map h y"
-      using that unfolding univ_poly_add univ_poly_carrier[symmetric] 
+      using that
+      unfolding univ_poly_add univ_poly_carrier[symmetric] 
       unfolding polynomial_def
       by (intro h.poly_add_hom'[of x y], auto)
     finally show ?thesis by simp
@@ -714,9 +715,12 @@ proof -
 qed
 
 lemma pirreducible_hom:
-  assumes "h \<in> ring_iso R S" "domain R" "domain S"
+  assumes "h \<in> ring_iso R S" 
+  assumes "domain R" "domain S"
   assumes "f \<in> carrier (poly_ring R)"
-  shows "pirreducible\<^bsub>R\<^esub> (carrier R) f = pirreducible\<^bsub>S\<^esub> (carrier S) (map h f)" (is "?lhs = ?rhs")
+  shows "pirreducible\<^bsub>R\<^esub> (carrier R) f = 
+    pirreducible\<^bsub>S\<^esub> (carrier S) (map h f)" 
+    (is "?lhs = ?rhs")
 proof -
   note lift_iso = lift_iso_to_poly_ring[OF assms(1,2,3)]
   interpret dr: domain "R" using assms(2) by blast
